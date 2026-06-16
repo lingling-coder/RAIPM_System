@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 01 Plan 03 completed
-last_updated: "2026-06-16T18:50:00.000Z"
-last_activity: 2026-06-16 -- Phase 01 Plan 03 completed
+last_updated: "2026-06-16T19:00:00.000Z"
+last_activity: 2026-06-16 -- Phase 01 Plan 04 completed
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 10
-  completed_plans: 7
-  percent: 35
+  completed_plans: 8
+  percent: 40
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-06-16)
 ## Current Position
 
 Phase: 01 (achievement-registration-approval) — EXECUTING
-Plan: 3 of 5 (Approval Workflow and Notification System)
-Status: Completed Plan 01-03
-Last activity: 2026-06-16 -- Phase 01 Plan 03 completed
+Plan: 4 of 5 (Batch Import and Attachment Security)
+Status: Completed Plan 01-04
+Last activity: 2026-06-16 -- Phase 01 Plan 04 completed
 
-Progress: [████████████████░] 35%
+Progress: [████████████████░░] 40%
 
 ## Performance Metrics
 
@@ -45,14 +45,14 @@ Progress: [████████████████░] 35%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 0. Foundation | 5 | ~176 min | ~35 min |
-| 1. Registration | 5 | 3 completed | ~53 min |
+| 1. Registration | 5 | 4 completed | ~51 min |
 | 2. Fee Management | 5 | - | - |
 | 3. Dashboard & Search | 5 | - | - |
 | 4. Reminders & Integration | 5 | - | - |
 
 **Recent Trend:**
 
-- Last 5 plans: 5/5 complete (Phase 0) + 2/5 complete (Phase 1)
+- Last 5 plans: 5/5 complete (Phase 0) + 3/5 complete (Phase 1)
 - Trend: Phase 1 plans progressively building on each other
 
 *Updated after each plan completion*
@@ -77,6 +77,8 @@ Recent decisions affecting current work:
 - Phase 01-02: softwareVersion field name for copyright (avoids @Version conflict)
 - Phase 01-03: UpdateWrapper over LambdaUpdateWrapper to avoid MyBatis-Plus lambda serialization issues in unit tests
 - Phase 01-03: NotificationService uses simplified sentinel user broadcast (Phase 2 will upgrade to full RBAC user query)
+- Phase 01-04: EasyExcel 4.0.3 AnalysisEventListener moved to com.alibaba.excel.event package (not com.alibaba.excel.read.listener)
+- Phase 01-04: Module dependency prevents paper module from injecting system module services — permission checks added inline in AttachmentService/Controller
 
 ### Validated
 
@@ -87,6 +89,9 @@ Recent decisions affecting current work:
 - APPR-01 (3-step approval workflow) — implemented and verified in Plan 01-03
 - APPR-02 (Approval audit logging) — implemented and verified in Plan 01-03
 - APPR-03 (In-app notification for approval tasks) — implemented and verified in Plan 01-03
+- REG-05 (Excel batch import) — implemented and verified in Plan 01-04
+- REG-07 (Attachment download permission) — enhanced with permission check in Plan 01-04
+- REG-10 (Classified achievement permission) — implemented and verified in Plan 01-04
 
 ### Blockers/Concerns
 
@@ -112,6 +117,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-16T18:50:00.000Z
-Stopped at: Completed Phase 01 Plan 03 — Approval Workflow and Notification System
-Resume file: .planning/phases/01-achievement-registration-approval/01-03-SUMMARY.md
+Last session: 2026-06-16T19:00:00.000Z
+Stopped at: Completed Phase 01 Plan 04 — Batch Import and Attachment Security
+Resume file: .planning/phases/01-achievement-registration-approval/01-04-SUMMARY.md
