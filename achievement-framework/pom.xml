@@ -96,6 +96,12 @@
             <artifactId>mapstruct</artifactId>
         </dependency>
 
+        <!-- AspectJ Weaver (for AOP audit logging) -->
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
