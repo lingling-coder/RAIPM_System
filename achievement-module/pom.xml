@@ -18,5 +18,7 @@
 
     <modules>
         <module>achievement-system</module>
+        <module>achievement-paper</module>
+        <module>achievement-integration</module>
     </modules>
 </project>
