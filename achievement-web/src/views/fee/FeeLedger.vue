@@ -313,7 +313,12 @@ function setQuickFilter(key: string) {
   activeQuickTag.value = key
   // Build query params from quick filter
   const today = new Date()
-  const yyyyMmDd = (d: Date) => d.toISOString().slice(0, 10)
+  const formatLocalDate = (d: Date) => {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const d2 = String(d.getDate()).padStart(2, '0')
+    return y + '-' + m + '-' + d2
+  }
 
   switch (key) {
     case 'all':
@@ -323,22 +328,22 @@ function setQuickFilter(key: string) {
       break
     case 'impending':
       filters.status = 'pending'
-      filters.dueDateFrom = yyyyMmDd(today)
+      filters.dueDateFrom = formatLocalDate(today)
       {
         const future = new Date(today)
         future.setDate(future.getDate() + 30)
-        filters.dueDateTo = yyyyMmDd(future)
+        filters.dueDateTo = formatLocalDate(future)
       }
       break
     case 'overdue':
       filters.status = 'pending'
       filters.dueDateFrom = null
-      filters.dueDateTo = yyyyMmDd(today)
+      filters.dueDateTo = formatLocalDate(today)
       break
     case 'dueThisMonth':
       filters.status = 'pending'
-      filters.dueDateFrom = yyyyMmDd(new Date(today.getFullYear(), today.getMonth(), 1))
-      filters.dueDateTo = yyyyMmDd(new Date(today.getFullYear(), today.getMonth() + 1, 0))
+      filters.dueDateFrom = formatLocalDate(new Date(today.getFullYear(), today.getMonth(), 1))
+      filters.dueDateTo = formatLocalDate(new Date(today.getFullYear(), today.getMonth() + 1, 0))
       break
   }
 
@@ -350,8 +355,8 @@ function setQuickFilter(key: string) {
 
 function onDateRangeChange(val: any) {
   if (val) {
-    filters.dueDateFrom = val[0].toISOString().slice(0, 10)
-    filters.dueDateTo = val[1].toISOString().slice(0, 10)
+    filters.dueDateFrom = formatLocalDate(val[0])
+    filters.dueDateTo = formatLocalDate(val[1])
   } else {
     filters.dueDateFrom = null
     filters.dueDateTo = null
@@ -456,6 +461,34 @@ async function handleDelete(row: FeeRecordVO) {
   }
 }
 
+
+// ── Timezone-safe date helpers (CR-04) ──────────────────────────────
+
+/** Parse YYYY-MM-DD string as local date components, no timezone offset */
+function parseLocalDate(str: string): Date | null {
+  if (!str) return null
+  const parts = str.split('-')
+  const y = parseInt(parts[0], 10)
+  const m = parseInt(parts[1], 10)
+  const d = parseInt(parts[2], 10)
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return null
+  return new Date(y, m - 1, d)
+}
+
+/** Format local Date to YYYY-MM-DD string, no timezone offset */
+function formatLocalDate(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return y + '-' + m + '-' + d
+}
+
+/** Get today's date as YYYY-MM-DD, no timezone offset */
+function todayLocal(): string {
+  const d = new Date()
+  return formatLocalDate(d)
+}
+
 // ── Edit dialog ───────────────────────────────────────────────────
 
 function openEdit(row: FeeRecordVO) {
@@ -463,7 +496,7 @@ function openEdit(row: FeeRecordVO) {
   editForm.value = {
     feeType: row.feeType,
     feeTypeLabel: row.feeTypeLabel,
-    dueDate: row.dueDate ? new Date(row.dueDate) : null,
+    dueDate: row.dueDate ? parseLocalDate(row.dueDate) : null,
     amount: row.amount,
     paidAmount: row.paidAmount,
     voucherNo: row.voucherNo,
@@ -482,7 +515,7 @@ async function saveEdit() {
       feeType: editForm.value.feeType,
       amount: editForm.value.amount,
       paidAmount: editForm.value.paidAmount,
-      dueDate: editForm.value.dueDate ? editForm.value.dueDate.toISOString().slice(0, 10) : '',
+      dueDate: editForm.value.dueDate ? formatLocalDate(editForm.value.dueDate) : '',
       voucherNo: editForm.value.voucherNo,
       fundingSource: editForm.value.fundingSource,
       status: editForm.value.status,
@@ -505,9 +538,9 @@ function getAlertTag(row: FeeRecordVO): { type: TagType, effect?: string, text: 
   if (row.status !== 'pending') return null
   if (!row.dueDate) return null
   const now = new Date()
+  const due = parseLocalDate(row.dueDate)
+  if (!due) return null
   now.setHours(0, 0, 0, 0)
-  const due = new Date(row.dueDate)
-  due.setHours(0, 0, 0, 0)
   const daysUntilDue = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
   if (daysUntilDue < 0) return { type: 'danger', effect: 'dark', text: `逾期 ${Math.abs(daysUntilDue)} 天` }
   if (daysUntilDue <= 7) return { type: 'danger', effect: 'plain', text: '截止在即' }
@@ -537,7 +570,8 @@ function statusTagType(status: string): TagType {
 
 function dueDateColor(row: FeeRecordVO): string {
   if (!row.dueDate || row.status === 'paid' || row.status === 'paused') return '#606266'
-  const due = new Date(row.dueDate)
+  const due = parseLocalDate(row.dueDate)
+  if (!due) return '#606266'
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const diff = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))

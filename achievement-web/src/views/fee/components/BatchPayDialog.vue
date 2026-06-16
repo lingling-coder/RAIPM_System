@@ -112,6 +112,33 @@ import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import * as feeApi from '@/api/fee/feeRecord'
 import type { FeeRecordVO } from '@/api/fee/feeRecord'
+// ── Timezone-safe date helpers (CR-04) ──────────────────────────────
+
+/** Parse YYYY-MM-DD string as local date components, no timezone offset */
+function parseLocalDate(str: string): Date | null {
+  if (!str) return null
+  const parts = str.split("-")
+  const y = parseInt(parts[0], 10)
+  const m = parseInt(parts[1], 10)
+  const d = parseInt(parts[2], 10)
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return null
+  return new Date(y, m - 1, d)
+}
+
+/** Format local Date to YYYY-MM-DD string, no timezone offset */
+function formatLocalDate(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, "0")
+  const d2 = String(date.getDate()).padStart(2, "0")
+  return y + "-" + m + "-" + d2
+}
+
+/** Get today date as YYYY-MM-DD string, no timezone offset */
+function todayLocal(): string {
+  const d = new Date()
+  return formatLocalDate(d)
+}
+
 
 const props = defineProps<{
   visible: boolean
@@ -131,7 +158,7 @@ const step = ref(1)
 const generating = ref(false)
 const paying = ref(false)
 const slipNumbers = ref<string[]>([])
-const paidDate = ref(new Date().toISOString().slice(0, 10))
+const paidDate = ref(todayLocal())
 const voucherNo = ref('')
 
 // Watch visible prop to sync dialog state
@@ -141,7 +168,7 @@ watch(() => props.visible, (val) => {
     // Reset state when dialog opens
     step.value = 1
     slipNumbers.value = []
-    paidDate.value = new Date().toISOString().slice(0, 10)
+    paidDate.value = todayLocal()
     voucherNo.value = ''
   }
 })
