@@ -1,7 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { PaperFormDTO } from '@/api/achievement/paper'
+import type { PatentFormDTO } from '@/api/achievement/patent'
+import type { CopyrightFormDTO } from '@/api/achievement/copyright'
 import * as paperApi from '@/api/achievement/paper'
+import * as patentApi from '@/api/achievement/patent'
+import * as copyrightApi from '@/api/achievement/copyright'
+
+export type AchievementFormData = PaperFormDTO | PatentFormDTO | CopyrightFormDTO
 
 export interface DraftItem {
   id: number
@@ -16,7 +22,7 @@ export interface DraftItem {
 export const useAchievementStore = defineStore('achievement', () => {
   // ── State ──────────────────────────────────────────────────────────
   const currentType = ref<'paper' | 'patent' | 'copyright'>('paper')
-  const formData = ref<PaperFormDTO | null>(null)
+  const formData = ref<AchievementFormData | null>(null)
   const drafts = ref<DraftItem[]>([])
   const currentDraftId = ref<number | null>(null)
 
@@ -40,9 +46,17 @@ export const useAchievementStore = defineStore('achievement', () => {
    */
   async function loadDraft(id: number) {
     try {
-      const res: any = await paperApi.getDraftById(id)
+      const apiMap: Record<string, any> = {
+        paper: paperApi.getById,
+        patent: patentApi.getById,
+        copyright: copyrightApi.getById,
+      }
+      const getApi = apiMap[currentType.value]
+      if (!getApi) return
+
+      const res: any = await getApi(id)
       if (res?.data) {
-        formData.value = res.data as PaperFormDTO
+        formData.value = res.data as AchievementFormData
         currentDraftId.value = id
       }
     } catch (e) {
@@ -55,33 +69,72 @@ export const useAchievementStore = defineStore('achievement', () => {
    */
   async function saveDraftAction() {
     if (!formData.value) return
-    const res: any = await paperApi.saveDraft(formData.value)
+
+    const apiMap: Record<string, any> = {
+      paper: paperApi.saveDraft,
+      patent: patentApi.saveDraft,
+      copyright: copyrightApi.saveDraft,
+    }
+    const saveApi = apiMap[currentType.value]
+    if (!saveApi) return
+
+    const res: any = await saveApi(formData.value)
     if (res?.data) {
       currentDraftId.value = res.data
     }
   }
 
   /**
-   * Reset form data to empty state.
+   * Reset form data to empty state based on current type.
    */
   function resetForm() {
-    formData.value = {
-      title: '',
-      authors: '',
-      journal: '',
-      doi: '',
-      issn: '',
-      volume: undefined,
-      issue: undefined,
-      pages: '',
-      publishYear: new Date().getFullYear(),
-      indexStatus: '',
-      impactFactor: undefined,
-      zone: '',
-      abstractText: '',
-      isClassified: 0,
-      classifiedLevel: '',
-      projectRef: '',
+    if (currentType.value === 'paper') {
+      formData.value = {
+        title: '',
+        authors: '',
+        journal: '',
+        doi: '',
+        issn: '',
+        volume: undefined,
+        issue: undefined,
+        pages: '',
+        publishYear: new Date().getFullYear(),
+        indexStatus: '',
+        impactFactor: undefined,
+        zone: '',
+        abstractText: '',
+        isClassified: 0,
+        classifiedLevel: '',
+        projectRef: '',
+      } as PaperFormDTO
+    } else if (currentType.value === 'patent') {
+      formData.value = {
+        patentName: '',
+        inventors: '',
+        applicationNo: '',
+        authorizationNo: '',
+        applicationDate: '',
+        authorizationDate: '',
+        patentType: '',
+        country: '中国',
+        nextFeeDate: '',
+        legalStatus: '',
+        isClassified: 0,
+        classifiedLevel: '',
+        projectRef: '',
+      } as PatentFormDTO
+    } else if (currentType.value === 'copyright') {
+      formData.value = {
+        name: '',
+        copyrightHolder: '',
+        registrationNo: '',
+        registrationDate: '',
+        softwareVersion: '',
+        softwareCategory: '',
+        isClassified: 0,
+        classifiedLevel: '',
+        projectRef: '',
+      } as CopyrightFormDTO
     }
     currentDraftId.value = null
   }
@@ -89,9 +142,9 @@ export const useAchievementStore = defineStore('achievement', () => {
   /**
    * Set form data (e.g., from DOI preview confirmation).
    */
-  function setFormData(data: Partial<PaperFormDTO>) {
+  function setFormData(data: Partial<AchievementFormData>) {
     if (formData.value) {
-      formData.value = { ...formData.value, ...data }
+      formData.value = { ...formData.value, ...data } as AchievementFormData
     }
   }
 

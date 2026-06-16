@@ -6,43 +6,75 @@
     </el-breadcrumb>
 
     <!-- Header -->
-    <div class="detail-header" v-if="paper">
+    <div class="detail-header" v-if="detail">
       <div class="header-left">
-        <span class="title-text">{{ paper.title }}</span>
-        <el-tag v-if="paper.status" :type="statusTagType(paper.status)">{{ paper.statusLabel }}</el-tag>
-        <el-tag v-if="paper.isClassified" type="warning" effect="dark">
-          {{ paper.classifiedLevel || '涉密' }}
+        <span class="title-text">{{ displayTitle }}</span>
+        <el-tag v-if="detail.status" :type="statusTagType(detail.status)">{{ detail.statusLabel }}</el-tag>
+        <el-tag v-if="detail.isClassified" type="warning" effect="dark">
+          {{ detail.classifiedLevel || '涉密' }}
         </el-tag>
+      </div>
+      <div class="header-right">
+        <el-tag type="info">{{ achievementTypeLabel }}</el-tag>
       </div>
     </div>
 
     <!-- Action bar -->
-    <div class="action-bar" v-if="paper">
-      <el-button v-if="paper.status === 'DRAFT'" type="primary" @click="editPaper">编辑</el-button>
+    <div class="action-bar" v-if="detail">
+      <el-button v-if="detail.status === 'DRAFT'" type="primary" @click="editAchievement">编辑</el-button>
     </div>
 
     <!-- Tabs -->
-    <el-tabs v-model="activeTab" v-if="paper">
+    <el-tabs v-model="activeTab" v-if="detail">
       <el-tab-pane label="基本信息" name="basic">
         <el-descriptions :column="1" border class="detail-descriptions">
-          <el-descriptions-item label="论文标题">{{ paper.title }}</el-descriptions-item>
-          <el-descriptions-item label="作者">{{ paper.authors }}</el-descriptions-item>
-          <el-descriptions-item label="期刊/会议">{{ paper.journal }}</el-descriptions-item>
-          <el-descriptions-item label="DOI">{{ paper.doi || '—' }}</el-descriptions-item>
-          <el-descriptions-item label="ISSN/CN">{{ paper.issn || '—' }}</el-descriptions-item>
-          <el-descriptions-item label="卷号">{{ paper.volume || '—' }}</el-descriptions-item>
-          <el-descriptions-item label="期号">{{ paper.issue || '—' }}</el-descriptions-item>
-          <el-descriptions-item label="页码">{{ paper.pages || '—' }}</el-descriptions-item>
-          <el-descriptions-item label="发表年份">{{ paper.publishYear }}</el-descriptions-item>
-          <el-descriptions-item label="收录情况">{{ paper.indexStatus }}</el-descriptions-item>
-          <el-descriptions-item label="影响因子">{{ paper.impactFactor ?? '—' }}</el-descriptions-item>
-          <el-descriptions-item label="中科院分区">{{ paper.zone || '—' }}</el-descriptions-item>
-          <el-descriptions-item label="摘要">{{ paper.abstractText || '—' }}</el-descriptions-item>
-          <el-descriptions-item label="涉密标记">{{ paper.isClassified ? '是' : '否' }}</el-descriptions-item>
-          <el-descriptions-item v-if="paper.isClassified" label="密级">{{ paper.classifiedLevel }}</el-descriptions-item>
-          <el-descriptions-item label="所属课题">{{ paper.projectRef || '—' }}</el-descriptions-item>
-          <el-descriptions-item label="状态">{{ paper.statusLabel }}</el-descriptions-item>
-          <el-descriptions-item label="归档号">{{ paper.archiveNo || '—' }}</el-descriptions-item>
+          <!-- Paper fields -->
+          <template v-if="achievementType === 'paper'">
+            <el-descriptions-item label="论文标题">{{ detail.title }}</el-descriptions-item>
+            <el-descriptions-item label="作者">{{ detail.authors }}</el-descriptions-item>
+            <el-descriptions-item label="期刊/会议">{{ detail.journal }}</el-descriptions-item>
+            <el-descriptions-item label="DOI">{{ detail.doi || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="ISSN/CN">{{ detail.issn || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="卷号">{{ detail.volume || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="期号">{{ detail.issue || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="页码">{{ detail.pages || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="发表年份">{{ detail.publishYear }}</el-descriptions-item>
+            <el-descriptions-item label="收录情况">{{ detail.indexStatus }}</el-descriptions-item>
+            <el-descriptions-item label="影响因子">{{ detail.impactFactor ?? '—' }}</el-descriptions-item>
+            <el-descriptions-item label="中科院分区">{{ detail.zone || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="摘要">{{ detail.abstractText || '—' }}</el-descriptions-item>
+          </template>
+
+          <!-- Patent fields -->
+          <template v-if="achievementType === 'patent'">
+            <el-descriptions-item label="专利名称">{{ detail.patentName }}</el-descriptions-item>
+            <el-descriptions-item label="发明人">{{ detail.inventors }}</el-descriptions-item>
+            <el-descriptions-item label="申请号">{{ detail.applicationNo }}</el-descriptions-item>
+            <el-descriptions-item label="授权号">{{ detail.authorizationNo || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="申请日">{{ detail.applicationDate }}</el-descriptions-item>
+            <el-descriptions-item label="授权日">{{ detail.authorizationDate || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="专利类型">{{ detail.patentType }}</el-descriptions-item>
+            <el-descriptions-item label="国别">{{ detail.country }}</el-descriptions-item>
+            <el-descriptions-item label="年费下次缴费日">{{ detail.nextFeeDate || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="法律状态">{{ detail.legalStatus }}</el-descriptions-item>
+          </template>
+
+          <!-- Copyright fields -->
+          <template v-if="achievementType === 'copyright'">
+            <el-descriptions-item label="软著名称">{{ detail.name }}</el-descriptions-item>
+            <el-descriptions-item label="著作权人">{{ detail.copyrightHolder }}</el-descriptions-item>
+            <el-descriptions-item label="登记号">{{ detail.registrationNo }}</el-descriptions-item>
+            <el-descriptions-item label="登记日期">{{ detail.registrationDate }}</el-descriptions-item>
+            <el-descriptions-item label="版本号">{{ detail.softwareVersion }}</el-descriptions-item>
+            <el-descriptions-item label="软件类别">{{ detail.softwareCategory }}</el-descriptions-item>
+          </template>
+
+          <!-- Common fields for all types -->
+          <el-descriptions-item label="涉密标记">{{ detail.isClassified ? '是' : '否' }}</el-descriptions-item>
+          <el-descriptions-item v-if="detail.isClassified" label="密级">{{ detail.classifiedLevel }}</el-descriptions-item>
+          <el-descriptions-item label="所属课题">{{ detail.projectRef || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="状态">{{ detail.statusLabel }}</el-descriptions-item>
+          <el-descriptions-item label="归档号">{{ detail.archiveNo || '—' }}</el-descriptions-item>
         </el-descriptions>
       </el-tab-pane>
 
@@ -57,7 +89,7 @@
           <el-table-column label="操作">
             <template #default="scope">
               <el-button size="small" @click="downloadAttachment(scope.row)">下载</el-button>
-              <el-button v-if="paper?.status === 'DRAFT' || paper?.status === 'REJECTED'"
+              <el-button v-if="detail?.status === 'DRAFT' || detail?.status === 'REJECTED'"
                 size="small" type="danger" @click="deleteAttachment(scope.row)">删除</el-button>
             </template>
           </el-table-column>
@@ -68,20 +100,48 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import type { PaperVO } from '@/api/achievement/paper'
 import * as paperApi from '@/api/achievement/paper'
+import * as patentApi from '@/api/achievement/patent'
+import * as copyrightApi from '@/api/achievement/copyright'
 import * as attachmentApi from '@/api/attachment'
 
 const route = useRoute()
 const router = useRouter()
 
 const loading = ref(false)
-const paper = ref<PaperVO | null>(null)
+const detail = ref<any>(null)
+const achievementType = ref<'paper' | 'patent' | 'copyright' | null>(null)
 const activeTab = ref('basic')
 const attachments = ref<any[]>([])
+
+// Determine achievement type from response data structure
+function detectType(data: any): 'paper' | 'patent' | 'copyright' {
+  if (data.title !== undefined) return 'paper'
+  if (data.patentName !== undefined) return 'patent'
+  if (data.name !== undefined) return 'copyright'
+  // Fallback
+  return 'paper'
+}
+
+const displayTitle = computed(() => {
+  if (!detail.value) return ''
+  if (achievementType.value === 'paper') return detail.value.title
+  if (achievementType.value === 'patent') return detail.value.patentName
+  if (achievementType.value === 'copyright') return detail.value.name
+  return ''
+})
+
+const achievementTypeLabel = computed(() => {
+  const labels: Record<string, string> = {
+    paper: '论文',
+    patent: '专利',
+    copyright: '软件著作权',
+  }
+  return achievementType.value ? labels[achievementType.value] : '未知'
+})
 
 onMounted(async () => {
   const id = Number(route.params.id)
@@ -89,10 +149,35 @@ onMounted(async () => {
 
   loading.value = true
   try {
-    const res: any = await paperApi.getById(id)
-    if (res?.data) {
-      paper.value = res.data
+    // Try each API until we find the achievement
+    // The detail pages use a single ID-based endpoint; for Phase 1 we try
+    // each type's API. Future phases may add a unified lookup endpoint.
+    let data: any = null
+
+    try {
+      const paperRes: any = await paperApi.getById(id)
+      if (paperRes?.data) data = paperRes.data
+    } catch { /* not a paper */ }
+
+    if (!data) {
+      try {
+        const patentRes: any = await patentApi.getById(id)
+        if (patentRes?.data) data = patentRes.data
+      } catch { /* not a patent */ }
     }
+
+    if (!data) {
+      try {
+        const copyrightRes: any = await copyrightApi.getById(id)
+        if (copyrightRes?.data) data = copyrightRes.data
+      } catch { /* not a copyright */ }
+    }
+
+    if (data) {
+      detail.value = data
+      achievementType.value = detectType(data)
+    }
+
     // Load attachments
     try {
       const attRes: any = await attachmentApi.getAttachments('paper', id)
@@ -122,8 +207,8 @@ function statusTagType(status: string): string {
   return map[status] || 'info'
 }
 
-function editPaper() {
-  router.push(`/achievement/register?draftId=${paper.value?.id}`)
+function editAchievement() {
+  router.push(`/achievement/register?draftId=${detail.value?.id}`)
 }
 
 function downloadAttachment(row: any) {
@@ -161,6 +246,10 @@ async function deleteAttachment(row: any) {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.header-right {
+  flex-shrink: 0;
 }
 
 .title-text {

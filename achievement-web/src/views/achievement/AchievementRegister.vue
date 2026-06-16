@@ -85,8 +85,14 @@ import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAchievementStore } from '@/stores/achievement'
 import * as paperApi from '@/api/achievement/paper'
+import * as patentApi from '@/api/achievement/patent'
+import * as copyrightApi from '@/api/achievement/copyright'
 import type { PaperFormDTO, DoiLookupResult } from '@/api/achievement/paper'
+import type { PatentFormDTO } from '@/api/achievement/patent'
+import type { CopyrightFormDTO } from '@/api/achievement/copyright'
 import PaperForm from '@/components/achievement/PaperForm.vue'
+import PatentForm from '@/components/achievement/PatentForm.vue'
+import CopyrightForm from '@/components/achievement/CopyrightForm.vue'
 import DoiPreviewDialog from '@/components/achievement/DoiPreviewDialog.vue'
 import AttachmentUploader from '@/components/achievement/AttachmentUploader.vue'
 
@@ -113,7 +119,8 @@ onMounted(() => {
 
 const formComponentMap: Record<string, any> = {
   paper: PaperForm,
-  // patent and copyright forms added in later plans
+  patent: PatentForm,
+  copyright: CopyrightForm,
 }
 
 const currentFormComponent = computed(() => formComponentMap[activeType.value])
@@ -148,7 +155,7 @@ async function onTypeChange(newType: string) {
 
 // ── Form Update ───────────────────────────────────────────────────
 
-function onFormUpdate(data: PaperFormDTO) {
+function onFormUpdate(data: any) {
   store.formData = data
 }
 
@@ -163,14 +170,14 @@ function applyDoiData() {
   if (!doiPreviewData.value || !store.formData) return
   const data = doiPreviewData.value
   store.setFormData({
-    title: data.title || store.formData.title,
-    authors: data.authors || store.formData.authors,
-    journal: data.journal || store.formData.journal,
-    volume: data.volume || store.formData.volume,
-    issue: data.issue || store.formData.issue,
-    pages: data.pages || store.formData.pages,
-    publishYear: data.publishYear || store.formData.publishYear,
-    abstractText: data.abstractText || store.formData.abstractText,
+    title: data.title || (store.formData as any).title,
+    authors: data.authors || (store.formData as any).authors,
+    journal: data.journal || (store.formData as any).journal,
+    volume: data.volume || (store.formData as any).volume,
+    issue: data.issue || (store.formData as any).issue,
+    pages: data.pages || (store.formData as any).pages,
+    publishYear: data.publishYear || (store.formData as any).publishYear,
+    abstractText: data.abstractText || (store.formData as any).abstractText,
   })
   ElMessage.success('DOI 数据已填入表单')
 }
@@ -185,7 +192,17 @@ async function submitForm() {
 
   submitting.value = true
   try {
-    const res: any = await paperApi.submit(store.formData)
+    const apiMap: Record<string, any> = {
+      paper: paperApi.submit,
+      patent: patentApi.submit,
+      copyright: copyrightApi.submit,
+    }
+    const submitApi = apiMap[activeType.value]
+    if (!submitApi) {
+      ElMessage.error('未知的成果类型')
+      return
+    }
+    const res: any = await submitApi(store.formData)
     if (res?.code === 200 || res?.data) {
       ElMessage.success('提交成功！成果已进入审批流程')
       store.resetForm()
@@ -193,7 +210,8 @@ async function submitForm() {
       // D-07: Stay on same type
     }
   } catch (err: any) {
-    ElMessage.error(err?.message || '提交失败，请稍后重试')
+    const msg = err?.response?.data?.message || err?.message || '提交失败，请稍后重试'
+    ElMessage.error(msg)
   } finally {
     submitting.value = false
   }
@@ -202,8 +220,10 @@ async function submitForm() {
 // ── Save Draft ────────────────────────────────────────────────────
 
 async function saveDraft() {
-  if (!store.formData?.title) {
-    ElMessage.warning('请输入标题后再保存草稿')
+  const formData = store.formData as any
+  const title = formData?.title || formData?.patentName || formData?.name
+  if (!title) {
+    ElMessage.warning('请输入标题/名称后再保存草稿')
     return
   }
 

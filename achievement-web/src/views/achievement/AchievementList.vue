@@ -11,7 +11,7 @@
 
     <!-- Filter bar -->
     <div class="filter-bar">
-      <el-select v-model="filters.type" placeholder="成果类型" clearable style="width: 150px">
+      <el-select v-model="filters.type" placeholder="成果类型" clearable style="width: 150px" @change="fetchData">
         <el-option label="论文" value="paper" />
         <el-option label="专利" value="patent" />
         <el-option label="软件著作权" value="copyright" />
@@ -28,7 +28,7 @@
 
       <el-input
         v-model="filters.keyword"
-        placeholder="搜索标题/作者"
+        placeholder="搜索标题/名称"
         clearable
         style="width: 200px"
         @keyup.enter="fetchData"
@@ -46,10 +46,14 @@
       @row-click="goToDetail"
     >
       <el-table-column type="index" label="#" width="60" />
-      <el-table-column prop="title" label="标题" min-width="200" show-overflow-tooltip />
-      <el-table-column label="类型" width="100">
-        <template #default>
-          <el-tag>论文</el-tag>
+      <el-table-column label="标题/名称" min-width="200" show-overflow-tooltip>
+        <template #default="scope">
+          {{ scope.row.title || scope.row.patentName || scope.row.name }}
+        </template>
+      </el-table-column>
+      <el-table-column label="类型" width="120">
+        <template #default="scope">
+          <el-tag>{{ typeLabel(scope.row) }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="状态" width="140">
@@ -86,24 +90,40 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import type { PaperVO } from '@/api/achievement/paper'
 import * as paperApi from '@/api/achievement/paper'
+import * as patentApi from '@/api/achievement/patent'
+import * as copyrightApi from '@/api/achievement/copyright'
 
 const router = useRouter()
 
 // ── State ──────────────────────────────────────────────────────────
 const loading = ref(false)
-const tableData = ref<PaperVO[]>([])
+const tableData = ref<any[]>([])
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(20)
 const activeTab = ref('active')
+const currentApiType = ref<'paper' | 'patent' | 'copyright' | null>(null)
 
 const filters = reactive({
   type: null as string | null,
   dateRange: null as any,
   keyword: '',
 })
+
+// ── Type label mapping ────────────────────────────────────────────
+
+function typeLabel(row: any): string {
+  // Determine type from row data shape or explicit field
+  if (row.title !== undefined) return '论文'
+  if (row.patentName !== undefined) return '专利'
+  if (row.name !== undefined) return '软件著作权'
+  // Fall back to tracking which API was used
+  if (currentApiType.value === 'paper') return '论文'
+  if (currentApiType.value === 'patent') return '专利'
+  if (currentApiType.value === 'copyright') return '软件著作权'
+  return '未知'
+}
 
 // ── Status tag type mapping ───────────────────────────────────────
 
@@ -138,12 +158,17 @@ async function fetchData() {
 
   try {
     const statusMap: Record<string, string | undefined> = {
-      active: undefined, // API handles active filter
+      active: undefined,
       draft: 'DRAFT',
       invalidated: 'INVALIDATED',
     }
 
-    const res: any = await paperApi.getPage({
+    // Determine which API to call based on type filter
+    const type = filters.type
+    const api = type === 'patent' ? patentApi : type === 'copyright' ? copyrightApi : paperApi
+    currentApiType.value = (type as 'paper' | 'patent' | 'copyright') || 'paper'
+
+    const res: any = await api.getPage({
       page: page.value,
       size: pageSize.value,
       status: statusMap[activeTab.value],
@@ -174,7 +199,7 @@ function resetFilters() {
 
 // ── Navigation ────────────────────────────────────────────────────
 
-function goToDetail(row: PaperVO) {
+function goToDetail(row: any) {
   router.push(`/achievement/detail/${row.id}`)
 }
 

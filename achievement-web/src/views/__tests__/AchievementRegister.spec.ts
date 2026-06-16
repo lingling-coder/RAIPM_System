@@ -58,4 +58,32 @@ describe('AchievementRegister.vue', () => {
     expect(module.upload).toBeDefined()
     expect(module.download).toBeDefined()
   })
+
+  it('PatentForm component can be imported', async () => {
+    const module = await import('@/components/achievement/PatentForm.vue')
+    expect(module).toBeDefined()
+    expect(module.default).toBeDefined()
+  })
+
+  it('CopyrightForm component can be imported', async () => {
+    const module = await import('@/components/achievement/CopyrightForm.vue')
+    expect(module).toBeDefined()
+    expect(module.default).toBeDefined()
+  })
+
+  it('patent API module can be imported', async () => {
+    const module = await import('@/api/achievement/patent')
+    expect(module).toBeDefined()
+    expect(module.submit).toBeDefined()
+    expect(module.saveDraft).toBeDefined()
+    expect(module.getPage).toBeDefined()
+  })
+
+  it('copyright API module can be imported', async () => {
+    const module = await import('@/api/achievement/copyright')
+    expect(module).toBeDefined()
+    expect(module.submit).toBeDefined()
+    expect(module.saveDraft).toBeDefined()
+    expect(module.getPage).toBeDefined()
+  })
 })
