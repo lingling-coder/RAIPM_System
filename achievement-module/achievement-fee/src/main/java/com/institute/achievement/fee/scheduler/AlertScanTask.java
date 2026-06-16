@@ -75,7 +75,8 @@ public class AlertScanTask {
                     Duration.between(startTime, LocalDateTime.now()).toMillis());
         } catch (Exception e) {
             log.error("Alert scan failed for date {}", today, e);
-            // Task will retry next day — partial failures are acceptable (D-23)
+            // Remove idempotency key so the task can be retried (WR-04)
+            redisTemplate.delete("fee:alert:last-run:" + today);
         } finally {
             // Release lock
             redisTemplate.delete(LOCK_KEY);

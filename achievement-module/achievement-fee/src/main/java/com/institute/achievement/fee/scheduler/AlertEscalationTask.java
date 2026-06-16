@@ -77,7 +77,8 @@ public class AlertEscalationTask {
                     Duration.between(startTime, LocalDateTime.now()).toMillis());
         } catch (Exception e) {
             log.error("Alert escalation failed for date {}", today, e);
-            // Task will retry next day — partial failures are acceptable
+            // Remove idempotency key so the task can be retried (WR-04)
+            redisTemplate.delete("fee:alert:escalation:last-run:" + today);
         } finally {
             // Release lock
             redisTemplate.delete(LOCK_KEY);
