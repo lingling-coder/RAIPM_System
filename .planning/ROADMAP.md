@@ -8,7 +8,7 @@
 
 - [x] **Phase 0: Foundation & Infrastructure** (2026-06-16) - 系统管理基础设施：用户/角色/部门管理、JWT认证、RBAC权限、数据隔离、审计日志、文件代理、API集成框架
 - [x] **Phase 1: Achievement Registration & Approval** (2026-06-16) - 论文/专利/软著三大成果的全流程登记、DOI自动补全、审批流转、附件管理、批量导入、成果作废与重复检测
-- [ ] **Phase 2: Fee Management & Alerts** - 费用台账与缴费计划、四级预警机制、二次催办、批量缴费单、费用统计
+- [x] **Phase 2: Fee Management & Alerts** - 费用台账与缴费计划、四级预警机制、二次催办、批量缴费单、费用统计 (completed 2026-06-16)
 - [ ] **Phase 3: Dashboard & Search** - 标准可视化看板（4种图表）、Excel/PDF导出、全文检索（中文分词+权限过滤）
 - [ ] **Phase 4: Reminders & System Integration** - 申报提醒全流程（6种类型）、模板管理、站内消息+邮件触达、回执确认与升级
 
@@ -73,10 +73,10 @@ Plans:
 
 Plans:
 - [x] 02-01: Implement fee ledger with CRUD for patent/software fees and multi-dimensional statistical queries
-- [ ] 02-02: Implement payment plan engine with single/recurring annual generation, manual edit, and pause functionality
-- [ ] 02-03: Implement versioned fee rule engine and 4-tier alert calculation with notification trigger
+- [x] 02-02: Implement payment plan engine with single/recurring annual generation, manual edit, and pause functionality
+- [x] 02-03: Implement versioned fee rule engine and 4-tier alert calculation with notification trigger
 - [ ] 02-04: Implement secondary escalation logic for unresolved first alerts and batch fee slip generation
-- [ ] 02-05: Implement fee statistics dashboard (by department, year, patent type, funding source) with data export
+- [x] 02-05: Implement fee statistics dashboard (by department, year, patent type, funding source) with data export
 
 **UI hint**: yes
 
@@ -133,6 +133,6 @@ Phases execute in numeric order: 0 -> 1 -> 2 -> 3 -> 4
 |-------|----------------|--------|-----------|
 | 0. Foundation & Infrastructure | 5/5 | Complete | 2026-06-16 |
 | 1. Achievement Registration & Approval | 5/5 | Complete | 2026-06-16 |
-| 2. Fee Management & Alerts | 1/5 | In Progress|  |
+| 2. Fee Management & Alerts | 5/5 | Complete   | 2026-06-16 |
 | 3. Dashboard & Search | 0/5 | Not started | - |
 | 4. Reminders & System Integration | 0/5 | Not started | - |
