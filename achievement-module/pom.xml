@@ -21,6 +21,7 @@
         <module>achievement-paper</module>
         <module>achievement-patent</module>
         <module>achievement-copyright</module>
+        <module>achievement-fee</module>
         <module>achievement-integration</module>
     </modules>
 </project>
