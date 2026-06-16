@@ -56,6 +56,11 @@
           <el-tag>{{ typeLabel(scope.row) }}</el-tag>
         </template>
       </el-table-column>
+      <el-table-column label="密级" width="80" align="center">
+        <template #default="scope">
+          <ClassifiedTag :level="scope.row.classifiedLevel" />
+        </template>
+      </el-table-column>
       <el-table-column label="状态" width="140">
         <template #default="scope">
           <el-tag :type="statusTagType(scope.row.status)">
@@ -93,6 +98,7 @@ import { useRouter } from 'vue-router'
 import * as paperApi from '@/api/achievement/paper'
 import * as patentApi from '@/api/achievement/patent'
 import * as copyrightApi from '@/api/achievement/copyright'
+import ClassifiedTag from '@/components/achievement/ClassifiedTag.vue'
 
 const router = useRouter()
 

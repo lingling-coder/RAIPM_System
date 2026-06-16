@@ -77,26 +77,38 @@
       :data="doiPreviewData"
       @confirm="applyDoiData"
     />
+
+    <!-- Duplicate detection dialog (D-46) -->
+    <DuplicateDialog
+      v-model:visible="duplicateDialogVisible"
+      :duplicate-data="duplicateCheckData"
+      :field-label="duplicateFieldLabel"
+      @view-existing="handleViewExisting"
+      @continue-submit="handleContinueSubmit"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAchievementStore } from '@/stores/achievement'
 import * as paperApi from '@/api/achievement/paper'
 import * as patentApi from '@/api/achievement/patent'
 import * as copyrightApi from '@/api/achievement/copyright'
+import * as invalidationApi from '@/api/achievement/invalidation'
 import type { PaperFormDTO, DoiLookupResult } from '@/api/achievement/paper'
-import type { PatentFormDTO } from '@/api/achievement/patent'
-import type { CopyrightFormDTO } from '@/api/achievement/copyright'
+import type { DuplicateCheckResult } from '@/api/achievement/invalidation'
 import PaperForm from '@/components/achievement/PaperForm.vue'
 import PatentForm from '@/components/achievement/PatentForm.vue'
 import CopyrightForm from '@/components/achievement/CopyrightForm.vue'
 import DoiPreviewDialog from '@/components/achievement/DoiPreviewDialog.vue'
 import AttachmentUploader from '@/components/achievement/AttachmentUploader.vue'
+import DuplicateDialog from '@/components/achievement/DuplicateDialog.vue'
 
 const store = useAchievementStore()
+const router = useRouter()
 
 // ── State ──────────────────────────────────────────────────────────
 const activeType = ref<'paper' | 'patent' | 'copyright'>('paper')
@@ -107,6 +119,12 @@ const isClassified = ref(false)
 
 const doiDialogVisible = ref(false)
 const doiPreviewData = ref<DoiLookupResult | null>(null)
+
+// Duplicate check state (D-45~D-47)
+const duplicateDialogVisible = ref(false)
+const duplicateCheckData = ref<DuplicateCheckResult | null>(null)
+const duplicateFieldLabel = ref('')
+const pendingSubmit = ref(false) // Whether submit should proceed after duplicate dialog
 
 // Initialize form data
 onMounted(() => {
@@ -182,9 +200,62 @@ function applyDoiData() {
   ElMessage.success('DOI 数据已填入表单')
 }
 
-// ── Submit (D-07: stay on same page) ──────────────────────────────
+// ── Submit with Duplicate Check (D-45~D-47) ──────────────────────
 
-async function submitForm() {
+/**
+ * Get the unique identifying field for the current achievement type.
+ * Return value type and field name (for duplicate check label display).
+ */
+function getUniqueField(): { value: string | null | undefined; label: string } {
+  const form = store.formData as any
+  if (!form) return { value: null, label: '' }
+
+  switch (activeType.value) {
+    case 'paper':
+      return { value: form.doi, label: 'DOI' }
+    case 'patent':
+      return { value: form.applicationNo, label: '申请号' }
+    case 'copyright':
+      return { value: form.registrationNo, label: '登记号' }
+    default:
+      return { value: null, label: '' }
+  }
+}
+
+/**
+ * Check for duplicate before submitting.
+ * D-45: Check at submit time.
+ * D-47: Drafts skip duplicate check.
+ */
+async function checkDuplicateBeforeSubmit(): Promise<boolean> {
+  const { value: uniqueField, label } = getUniqueField()
+
+  // D-47: No unique field (or empty) means no check needed
+  if (!uniqueField) {
+    return true // No duplicate blocking, proceed
+  }
+
+  try {
+    duplicateFieldLabel.value = label
+    const res: any = await invalidationApi.checkDuplicate(activeType.value, uniqueField)
+    if (res?.data?.duplicate) {
+      // D-46: Show duplicate dialog
+      duplicateCheckData.value = res.data
+      duplicateDialogVisible.value = true
+      return false // Block submit, wait for user decision
+    }
+  } catch {
+    // If duplicate check fails, allow submit to proceed (degraded behavior)
+    console.warn('Duplicate check failed, proceeding with submit')
+  }
+
+  return true
+}
+
+/**
+ * Handle the actual form submission after all checks pass.
+ */
+async function doSubmit() {
   if (!formRef.value || !store.formData) return
 
   const valid = await formRef.value.validate().catch(() => false)
@@ -214,7 +285,49 @@ async function submitForm() {
     ElMessage.error(msg)
   } finally {
     submitting.value = false
+    pendingSubmit.value = false
   }
+}
+
+/**
+ * Submit click handler: validate, check duplicate, then submit.
+ */
+async function submitForm() {
+  // Step 1: Validate form fields
+  if (!formRef.value || !store.formData) return
+  const valid = await formRef.value.validate().catch(() => false)
+  if (!valid) return
+
+  // Step 2: Check duplicate (D-45, D-47)
+  const canProceed = await checkDuplicateBeforeSubmit()
+  if (!canProceed) {
+    // Duplicate dialog will be shown — user decides next step
+    pendingSubmit.value = true
+    return
+  }
+
+  // Step 3: Submit
+  await doSubmit()
+}
+
+/**
+ * D-46: User clicked [查看已有成果] — navigate to existing achievement detail.
+ */
+function handleViewExisting(id: number | undefined) {
+  if (id) {
+    duplicateDialogVisible.value = false
+    router.push(`/achievement/detail/${id}`)
+  }
+}
+
+/**
+ * D-46: User clicked [继续填写并提交] — proceed with submission despite duplicate.
+ */
+async function handleContinueSubmit() {
+  duplicateDialogVisible.value = false
+  duplicateCheckData.value = null
+  // Proceed with the actual submission
+  await doSubmit()
 }
 
 // ── Save Draft ────────────────────────────────────────────────────

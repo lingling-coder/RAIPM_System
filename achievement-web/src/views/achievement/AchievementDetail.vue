@@ -5,14 +5,22 @@
       <el-breadcrumb-item>成果详情</el-breadcrumb-item>
     </el-breadcrumb>
 
+    <!-- INVALIDATED banner (D-35) -->
+    <el-alert
+      v-if="detail?.status === 'INVALIDATED'"
+      title="该成果已作废，仅创建人和系统管理员可见"
+      type="warning"
+      show-icon
+      :closable="false"
+      class="invalidated-banner"
+    />
+
     <!-- Header -->
     <div class="detail-header" v-if="detail">
       <div class="header-left">
         <span class="title-text">{{ displayTitle }}</span>
         <el-tag v-if="detail.status" :type="statusTagType(detail.status)">{{ detail.statusLabel }}</el-tag>
-        <el-tag v-if="detail.isClassified" type="warning" effect="dark">
-          {{ detail.classifiedLevel || '涉密' }}
-        </el-tag>
+        <ClassifiedTag :level="detail.classifiedLevel" />
       </div>
       <div class="header-right">
         <el-tag type="info">{{ achievementTypeLabel }}</el-tag>
@@ -20,7 +28,7 @@
     </div>
 
     <!-- Action bar (dynamic per status per D-40) -->
-    <div class="action-bar" v-if="detail">
+    <div class="action-bar" v-if="detail && detail.status !== 'INVALIDATED'">
       <!-- DRAFT: Edit -->
       <el-button v-if="detail.status === 'DRAFT'" type="primary" @click="editAchievement">
         编辑
@@ -39,6 +47,16 @@
       <!-- REJECTED: Edit and resubmit -->
       <el-button v-if="detail.status === 'REJECTED'" type="primary" @click="editAchievement">
         编辑
+      </el-button>
+
+      <!-- ARCHIVED: Invalidate (D-34, creator/secretary only) -->
+      <el-button
+        v-if="detail.status === 'ARCHIVED'"
+        type="danger"
+        :loading="invalidating"
+        @click="handleInvalidate"
+      >
+        作废
       </el-button>
     </div>
 
@@ -90,7 +108,9 @@
 
           <!-- Common fields for all types -->
           <el-descriptions-item label="涉密标记">{{ detail.isClassified ? '是' : '否' }}</el-descriptions-item>
-          <el-descriptions-item v-if="detail.isClassified" label="密级">{{ detail.classifiedLevel }}</el-descriptions-item>
+          <el-descriptions-item v-if="detail.isClassified" label="密级">
+            <ClassifiedTag :level="detail.classifiedLevel" />
+          </el-descriptions-item>
           <el-descriptions-item label="所属课题">{{ detail.projectRef || '—' }}</el-descriptions-item>
           <el-descriptions-item label="状态">{{ detail.statusLabel }}</el-descriptions-item>
           <el-descriptions-item label="归档号">{{ detail.archiveNo || '—' }}</el-descriptions-item>
@@ -146,13 +166,16 @@ import * as patentApi from '@/api/achievement/patent'
 import * as copyrightApi from '@/api/achievement/copyright'
 import * as approvalApi from '@/api/approval'
 import * as attachmentApi from '@/api/attachment'
+import * as invalidationApi from '@/api/achievement/invalidation'
 import AchievementTimeline from '@/components/achievement/AchievementTimeline.vue'
+import ClassifiedTag from '@/components/achievement/ClassifiedTag.vue'
 
 const route = useRoute()
 const router = useRouter()
 
 const loading = ref(false)
 const withdrawLoading = ref(false)
+const invalidating = ref(false)
 const detail = ref<any>(null)
 const achievementType = ref<'paper' | 'patent' | 'copyright' | null>(null)
 const activeTab = ref('basic')
@@ -300,6 +323,84 @@ async function handleWithdraw() {
     withdrawLoading.value = false
   }
 }
+
+/**
+ * Invalidate achievement handler (D-34~D-36).
+ * Shows a confirmation dialog with reason input before invalidating.
+ */
+async function handleInvalidate() {
+  if (!achievementType.value || !detail.value?.id) return
+
+  try {
+    // Show prompt dialog with reason textarea
+    await ElMessageBox.confirm(
+      '确认作废该成果？此操作不可撤销。作废后仅创建人和系统管理员可见。',
+      '确认作废',
+      {
+        type: 'warning',
+        confirmButtonText: '确认作废',
+        cancelButtonText: '取消',
+        distinguishCancelAndClose: true,
+        inputType: 'textarea',
+        inputPlaceholder: '请填写作废原因（必填）',
+        inputValidator: (value: string) => {
+          if (!value || !value.trim()) return '请填写作废原因'
+          if (value.trim().length > 500) return '作废原因不超过500字'
+          return true
+        },
+        inputErrorMessage: '作废原因不能为空',
+      }
+    )
+
+    // Proceed with invalidation
+    invalidating.value = true
+    // We use innerHTML to get the textarea value from the dialog
+    // ElMessageBox with input returns the input value as the 2nd arg of .then
+  } catch { /* cancelled */ return }
+
+  // Show a second prompt for the reason if needed - actually ElMessageBox.confirm
+  // with inputType supports input directly. But the standard pattern is to use
+  // ElMessageBox.prompt instead for input dialogs.
+  // Let's use ElMessageBox.prompt with custom configuration.
+  try {
+    const { value: reason } = await ElMessageBox.prompt(
+      '作废后仅创建人和系统管理员可见。此操作不可撤销。',
+      '确认作废',
+      {
+        confirmButtonText: '确认作废',
+        cancelButtonText: '取消',
+        inputType: 'textarea',
+        inputPlaceholder: '请填写作废原因',
+        inputValidator: (value: string) => {
+          if (!value || !value.trim()) return '请填写作废原因'
+          if (value.trim().length > 500) return '作废原因不超过500字'
+          return true
+        },
+        inputErrorMessage: '作废原因不能为空',
+      }
+    )
+
+    if (!reason || !reason.trim()) return
+
+    invalidating.value = true
+    const res: any = await invalidationApi.invalidate(
+      achievementType.value,
+      detail.value.id,
+      reason.trim()
+    )
+    if (res?.code === 200) {
+      ElMessage.warning('成果已作废')
+      // Update local state
+      detail.value.status = 'INVALIDATED'
+      if (detail.value.statusLabel !== undefined) {
+        detail.value.statusLabel = '已作废'
+      }
+    }
+  } catch { /* cancelled or failed */ }
+  finally {
+    invalidating.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -339,5 +440,9 @@ async function handleWithdraw() {
 
 .detail-descriptions {
   margin-top: 16px;
+}
+
+.invalidated-banner {
+  margin-bottom: 16px;
 }
 </style>
