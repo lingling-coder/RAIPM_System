@@ -121,10 +121,12 @@ import AchievementTimeline from '@/components/achievement/AchievementTimeline.vu
 import ApprovalActions from '@/components/approval/ApprovalActions.vue'
 import ApprovalHistory from '@/components/approval/ApprovalHistory.vue'
 import { useUserStore } from '@/store/user'
+import { useApprovalStore } from '@/stores/approval'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const approvalStore = useApprovalStore()
 
 const loading = ref(false)
 const actionLoading = ref(false)
@@ -230,6 +232,7 @@ async function handlePass() {
     const res: any = await approvalApi.approve(achievementType.value, achievementId.value)
     if (res?.code === 200) {
       ElMessage.success('审批通过')
+      approvalStore.fetchPendingCount()
       router.push('/approval/pending')
     }
   } catch {
@@ -245,6 +248,7 @@ async function handleReject(reason: string) {
     const res: any = await approvalApi.reject(achievementType.value, achievementId.value, reason)
     if (res?.code === 200) {
       ElMessage.warning('已退回至提交人')
+      approvalStore.fetchPendingCount()
       router.push('/approval/pending')
     }
   } catch {
@@ -260,6 +264,7 @@ async function handleArchive(archiveNo: string) {
     const res: any = await approvalApi.approve(achievementType.value, achievementId.value, '', archiveNo)
     if (res?.code === 200) {
       ElMessage.success(`已归档，编号：${archiveNo || '自动生成'}`)
+      approvalStore.fetchPendingCount()
       router.push('/approval/pending')
     }
   } catch {
