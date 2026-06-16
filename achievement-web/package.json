@@ -1,0 +1,30 @@
+{
+  "name": "achievement-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.4.0",
+    "vue-router": "^4.3.0",
+    "pinia": "^3.0.0",
+    "element-plus": "^2.9.0",
+    "@element-plus/icons-vue": "^2.3.1",
+    "axios": "^1.7.0",
+    "dayjs": "^1.11.0",
+    "nprogress": "^0.2.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0",
+    "@vitejs/plugin-vue": "^5.1.0",
+    "typescript": "^5.4.0",
+    "vue-tsc": "^2.0.0",
+    "sass": "^1.77.0",
+    "unplugin-auto-import": "^0.18.0",
+    "unplugin-vue-components": "^0.27.0"
+  }
+}
