@@ -177,23 +177,34 @@ public class AlertRecordServiceImpl implements AlertRecordService {
 
     @Override
     public AlertRecordVO getById(Long id) {
-        // Use paginated query with page=1 size=1, then extract the single result
-        // This reuses the JOIN logic from selectAlertPage
-        AlertQueryDTO query = new AlertQueryDTO();
-        // Don't restrict dept_id for single-entity lookup
-        // Security: MyBatis-Plus interceptor still enforces dept_id at SQL level
+        // Direct ID lookup -- do NOT use paginated query which only returns
+        // the single most recent alert (LIMIT 1 OFFSET 0) and would fail
+        // for any record not on the first page.
+        AlertRecord record = alertRecordMapper.selectById(id);
+        if (record == null) {
+            throw AchievementException.notFound("预警记录", id);
+        }
 
-        Page<AlertRecordVO> pageResult = alertRecordMapper.selectAlertPage(
-                new Page<>(1, 1), query);
+        // Load JOIN fields via fee_record
+        FeeRecord feeRecord = feeRecordMapper.selectById(record.getFeeRecordId());
 
-        return pageResult.getRecords().stream()
-                .filter(vo -> vo.getId().equals(id))
-                .findFirst()
-                .orElseThrow(() -> AchievementException.notFound("预警记录", id));
+        AlertRecordVO vo = new AlertRecordVO();
+        vo.setId(record.getId());
+        vo.setFeeRecordId(record.getFeeRecordId());
+        vo.setAlertLevel(record.getAlertLevel());
+        vo.setTriggeredDate(record.getTriggeredDate());
+        vo.setTriggeredAt(record.getTriggeredAt());
+        vo.setResolvedAt(record.getResolvedAt());
+        vo.setStatus(record.getStatus());
+        vo.setEscalationLevel(record.getEscalationLevel());
+        if (feeRecord != null) {
+            vo.setFeeAmount(feeRecord.getAmount());
+            vo.setDueDate(feeRecord.getDueDate());
+            vo.setOwnerType(feeRecord.getOwnerType());
+            vo.setOwnerId(feeRecord.getOwnerId());
+        }
+        return vo;
     }
-
-    @Override
-    @Transactional
     public void resolve(Long id) {
         AlertRecord alert = alertRecordMapper.selectById(id);
         if (alert == null) {
