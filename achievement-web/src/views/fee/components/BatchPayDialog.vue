@@ -195,7 +195,6 @@ async function confirmPay() {
       ids: props.selectedIds,
       paidDate: paidDate.value,
       voucherNo: voucherNo.value.trim(),
-      slipNo: slipNumbers.value[0] || '',
     })
     const count = res?.data || props.selectedIds.length
     ElMessage.success(`已成功标记 ${count} 条记录为已缴费`)

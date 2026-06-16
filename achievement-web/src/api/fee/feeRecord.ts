@@ -117,6 +117,6 @@ export function batchGenerateSlips(ids: number[]) {
 /**
  * Batch mark fee records as paid.
  */
-export function batchPay(data: { ids: number[], paidDate: string, voucherNo: string, slipNo: string }) {
+export function batchPay(data: { ids: number[], paidDate: string, voucherNo: string }) {
   return http.put('/api/fees/batch-pay', data)
 }

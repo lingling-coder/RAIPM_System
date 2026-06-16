@@ -135,7 +135,7 @@ public class FeeRecordServiceImpl implements FeeRecordService {
         }
 
         // T-02-01-05: Only the creator can delete, AND only when status is PAUSED
-        Long currentUserId = SecurityUtils.getCurrentUserId();
+
         if (!record.getCreatedBy().equals(currentUserId)) {
             throw AchievementException.notAuthorized("只能删除自己的费用记录");
         }
@@ -200,7 +200,7 @@ public class FeeRecordServiceImpl implements FeeRecordService {
             throw new AchievementException(4003, "请选择要生成缴费单的费用记录");
         }
 
-        Long currentUserId = SecurityUtils.getCurrentUserId();
+
         List<String> slipNumbers = new ArrayList<>(ids.size());
 
         for (Long id : ids) {
@@ -232,7 +232,7 @@ public class FeeRecordServiceImpl implements FeeRecordService {
 
     @Override
     @Transactional
-    public int batchPay(List<Long> ids, LocalDate paidDate, String voucherNo, String slipNo) {
+    public int batchPay(List<Long> ids, LocalDate paidDate, String voucherNo) {
         if (ids == null || ids.isEmpty()) {
             throw new AchievementException(4003, "请选择要标记为已缴费的费用记录");
         }
@@ -240,10 +240,10 @@ public class FeeRecordServiceImpl implements FeeRecordService {
             throw new AchievementException(4003, "凭证号不能为空");
         }
 
-        Long currentUserId = SecurityUtils.getCurrentUserId();
+
 
         // batchMarkAsPaid has WHERE status='pending' guard (T-02-04-01)
-        int affected = feeRecordMapper.batchMarkAsPaid(ids, paidDate, voucherNo, slipNo, currentUserId);
+        int affected = feeRecordMapper.batchMarkAsPaid(ids, paidDate, voucherNo);
 
         log.info("Batch payment: {} records marked as paid, voucher={}", affected, voucherNo);
         return affected;

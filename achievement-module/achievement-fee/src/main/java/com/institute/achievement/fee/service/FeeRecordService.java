@@ -85,14 +85,15 @@ public interface FeeRecordService {
     /**
      * Batch mark fee records as paid.
      * <p>
-     * Updates the status to 'paid' along with payment details (paidDate, voucherNo, slipNo).
+     * Updates the status to 'paid' along with payment details (paidDate, voucherNo).
+     * Does NOT overwrite slip_no / slip_generated_time / slip_generated_by -- those
+     * were already correctly set during batchGenerateSlips (CR-03).
      * Only records in 'pending' status are updated (T-02-04-01 mitigation).
      *
      * @param ids       list of fee record IDs to mark as paid
      * @param paidDate  the payment date
      * @param voucherNo the payment voucher/receipt number
-     * @param slipNo    the batch slip number
      * @return number of records actually updated
      */
-    int batchPay(List<Long> ids, LocalDate paidDate, String voucherNo, String slipNo);
+    int batchPay(List<Long> ids, LocalDate paidDate, String voucherNo);
 }

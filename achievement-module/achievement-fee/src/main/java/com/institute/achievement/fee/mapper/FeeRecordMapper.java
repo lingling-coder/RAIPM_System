@@ -77,9 +77,9 @@ public interface FeeRecordMapper extends BaseMapper<FeeRecord> {
     /**
      * Batch mark selected fee records as paid.
      * <p>
-     * Updates the status to 'paid' along with payment details (paidDate, voucherNo,
-     * slipNo, slipGeneratedTime, slipGeneratedBy) for all records matching the given IDs
-     * that are still in 'pending' status.
+     * Updates the status to 'paid' along with payment details (paidDate, voucherNo).
+     * Does NOT overwrite slip_no / slip_generated_time / slip_generated_by -- those
+     * were already correctly set during batchGenerateSlips (CR-03 mitigation).
      * <p>
      * The {@code WHERE status='pending'} guard prevents re-paying already paid records
      * (T-02-04-01 mitigation).
@@ -87,8 +87,6 @@ public interface FeeRecordMapper extends BaseMapper<FeeRecord> {
      * @param ids        list of fee record IDs to mark as paid
      * @param paidDate   the payment date
      * @param voucherNo  the payment voucher/receipt number
-     * @param slipNo     the generated slip number
-     * @param currentUserId the user performing the batch payment
      * @return number of records actually updated (may be less than ids.size if some
      *         were already paid or not found)
      */
@@ -97,9 +95,6 @@ public interface FeeRecordMapper extends BaseMapper<FeeRecord> {
             + "  status = 'paid', "
             + "  paid_date = #{paidDate}, "
             + "  voucher_no = #{voucherNo}, "
-            + "  slip_no = #{slipNo}, "
-            + "  slip_generated_time = NOW(), "
-            + "  slip_generated_by = #{currentUserId}, "
             + "  updated_time = NOW() "
             + "WHERE id IN "
             + "<foreach item='id' collection='ids' open='(' separator=',' close=')'>"
@@ -109,9 +104,7 @@ public interface FeeRecordMapper extends BaseMapper<FeeRecord> {
             + "</script>")
     int batchMarkAsPaid(@Param("ids") List<Long> ids,
                         @Param("paidDate") LocalDate paidDate,
-                        @Param("voucherNo") String voucherNo,
-                        @Param("slipNo") String slipNo,
-                        @Param("currentUserId") Long currentUserId);
+                        @Param("voucherNo") String voucherNo);
 
     /**
      * Update a single fee record with a generated slip number.
