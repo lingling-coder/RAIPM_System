@@ -1,0 +1,60 @@
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/target/
+
+# Maven Wrapper
+!/.mvn/wrapper/maven-wrapper.jar
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+yarn-debug.log*
+.yarn/
+pnpm-lock.yaml
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+.ensime_cache/
+*.classpath
+*.project
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment & Local Config
+.env
+application-local.yml
+application-local.properties
+
+# Docker
+docker-data/
+
+# Logs
+*.log
+logs/
+
+# Build output
+dist/
+build/
+out/
+
+# Backup files
+*.bak
+*.orig
