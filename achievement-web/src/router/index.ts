@@ -25,6 +25,32 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/profile/index.vue'),
     meta: { title: '个人中心', icon: 'User', permission: 'profile' },
   },
+  // ── Achievement Management ────────────────────────────────────────
+  {
+    path: '/achievement',
+    redirect: '/achievement/register',
+    meta: { title: '成果管理', icon: 'Document' },
+    children: [
+      {
+        path: 'register',
+        name: 'AchievementRegister',
+        component: () => import('@/views/achievement/AchievementRegister.vue'),
+        meta: { title: '成果登记', icon: 'Edit' },
+      },
+      {
+        path: 'list',
+        name: 'AchievementList',
+        component: () => import('@/views/achievement/AchievementList.vue'),
+        meta: { title: '成果列表', icon: 'List' },
+      },
+      {
+        path: 'detail/:id',
+        name: 'AchievementDetail',
+        component: () => import('@/views/achievement/AchievementDetail.vue'),
+        meta: { title: '成果详情', hidden: true },
+      },
+    ],
+  },
   // ── System Management ──────────────────────────────────────────────
   {
     path: '/system',
