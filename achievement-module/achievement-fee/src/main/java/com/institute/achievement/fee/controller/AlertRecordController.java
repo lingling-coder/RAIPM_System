@@ -90,4 +90,20 @@ public class AlertRecordController {
         alertRecordService.batchResolve(ids);
         return Result.success();
     }
+
+    /**
+     * Manually trigger escalation for a specific alert record.
+     * <p>
+     * Evaluates the alert's age and escalates to DEPT_HEAD or LEADERSHIP
+     * as appropriate. Sends escalation notifications to the correct
+     * RBAC-routed users.
+     *
+     * @param id the alert record ID to escalate
+     * @return success response
+     */
+    @PostMapping("/{id}/escalate")
+    public Result<Void> escalateAlert(@PathVariable Long id) {
+        alertRecordService.processSingleEscalation(id);
+        return Result.success();
+    }
 }

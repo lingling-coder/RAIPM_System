@@ -8,6 +8,7 @@ import com.institute.achievement.fee.dto.AlertRecordVO;
 import com.institute.achievement.fee.entity.AlertRecord;
 import com.institute.achievement.fee.entity.FeeRecord;
 import com.institute.achievement.fee.enums.AlertLevelEnum;
+import com.institute.achievement.fee.enums.EscalationLevel;
 import com.institute.achievement.fee.enums.FeeTypeEnum;
 import com.institute.achievement.fee.mapper.AlertRecordMapper;
 import com.institute.achievement.fee.mapper.FeeRecordMapper;
@@ -21,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -217,6 +219,171 @@ public class AlertRecordServiceImpl implements AlertRecordService {
                 log.warn("Batch resolve skipped alert id={}: {}", id, e.getMessage());
                 // Continue with remaining IDs
             }
+        }
+    }
+
+    @Override
+    @Transactional
+    public int processEscalations() {
+        // Query all pending alerts that haven't reached max escalation level
+        List<AlertRecord> pendingAlerts = alertRecordMapper.selectList(
+                new LambdaQueryWrapper<AlertRecord>()
+                        .eq(AlertRecord::getStatus, "pending")
+                        .ne(AlertRecord::getEscalationLevel, "LEADERSHIP"));
+
+        if (pendingAlerts.isEmpty()) {
+            log.debug("Escalation scan: no pending alerts to escalate");
+            return 0;
+        }
+
+        int escalatedDeptHead = 0;
+        int escalatedLeadership = 0;
+
+        for (AlertRecord alert : pendingAlerts) {
+            try {
+                long hoursSinceTrigger = Duration.between(alert.getTriggeredAt(), LocalDateTime.now()).toHours();
+                EscalationLevel targetLevel = EscalationLevel.determineNextLevel(
+                        alert.getEscalationLevel(), hoursSinceTrigger);
+                if (targetLevel == null) {
+                    continue; // No escalation needed yet
+                }
+
+                // Update the alert record
+                alert.setEscalationLevel(targetLevel.getCode());
+                alert.setEscalatedAt(LocalDateTime.now());
+                alertRecordMapper.updateById(alert);
+
+                // Load the associated fee record for notification content
+                FeeRecord feeRecord = feeRecordMapper.selectById(alert.getFeeRecordId());
+                if (feeRecord == null) {
+                    log.warn("Fee record not found for alert id={}, feeRecordId={}",
+                            alert.getId(), alert.getFeeRecordId());
+                    continue;
+                }
+
+                // Determine target users based on escalation level
+                String feeTypeLabel = resolveFeeTypeLabel(feeRecord.getFeeType());
+                String ownerName = resolveOwnerName(feeRecord);
+
+                if (EscalationLevel.DEPT_HEAD.equals(targetLevel)) {
+                    // Notify department heads / secretaries
+                    List<Long> userIds = notificationService.findUserIdsByDeptAndRole(
+                            alert.getDeptId(), "ROLE_SECRETARY");
+                    // Also notify department admins
+                    List<Long> adminIds = notificationService.findUserIdsByDeptAndRole(
+                            alert.getDeptId(), "ROLE_DEPT_ADMIN");
+                    userIds.addAll(adminIds);
+
+                    String title = "费用预警升级 — 请部门负责人处理";
+                    String content = String.format(
+                            "费用「%s」已于 %s 到期，首次预警已发送3天仍未处理。请部门负责人督促处理。",
+                            feeTypeLabel, feeRecord.getDueDate());
+
+                    for (Long userId : userIds) {
+                        notificationService.send(userId, "ALERT", title, content,
+                                "fee", feeRecord.getId());
+                    }
+                    escalatedDeptHead++;
+                    log.debug("Alert escalated to DEPT_HEAD: alertId={}, deptId={}, users={}",
+                            alert.getId(), alert.getDeptId(), userIds);
+
+                } else if (EscalationLevel.LEADERSHIP.equals(targetLevel)) {
+                    // Notify leaders across all departments
+                    List<Long> userIds = notificationService.findUserIdsByDeptAndRole(
+                            alert.getDeptId(), "ROLE_LEADER");
+
+                    String title = "费用预警升级 — 请院领导关注";
+                    String content = String.format(
+                            "费用「%s」已于 %s 到期，部门负责人通知已发送5天仍未处理。请院领导关注处理。",
+                            feeTypeLabel, feeRecord.getDueDate());
+
+                    for (Long userId : userIds) {
+                        notificationService.send(userId, "ALERT", title, content,
+                                "fee", feeRecord.getId());
+                    }
+                    escalatedLeadership++;
+                    log.debug("Alert escalated to LEADERSHIP: alertId={}, deptId={}, users={}",
+                            alert.getId(), alert.getDeptId(), userIds);
+                }
+
+            } catch (Exception e) {
+                log.error("Failed to escalate alert id={}: {}", alert.getId(), e.getMessage());
+                // Continue with next alert — partial failures are acceptable
+            }
+        }
+
+        log.info("Alert escalation completed: DEPT_HEAD={}, LEADERSHIP={}",
+                escalatedDeptHead, escalatedLeadership);
+        return escalatedDeptHead + escalatedLeadership;
+    }
+
+    @Override
+    @Transactional
+    public void processSingleEscalation(Long alertRecordId) {
+        AlertRecord alert = alertRecordMapper.selectById(alertRecordId);
+        if (alert == null) {
+            throw AchievementException.notFound("预警记录", alertRecordId);
+        }
+        if (!"pending".equals(alert.getStatus())) {
+            throw AchievementException.invalidTransition(alert.getStatus(), "escalate");
+        }
+
+        // Use the same logic by treating this as the escalation scan's threshold
+        long hoursSinceTrigger = Duration.between(alert.getTriggeredAt(), LocalDateTime.now()).toHours();
+        EscalationLevel targetLevel = EscalationLevel.determineNextLevel(
+                alert.getEscalationLevel(), hoursSinceTrigger);
+        if (targetLevel == null) {
+            log.info("Alert id={} does not yet meet escalation threshold (hoursSinceTrigger={})",
+                    alertRecordId, hoursSinceTrigger);
+            return; // Not yet time to escalate, but not an error
+        }
+
+        // Update the alert record
+        alert.setEscalationLevel(targetLevel.getCode());
+        alert.setEscalatedAt(LocalDateTime.now());
+        alertRecordMapper.updateById(alert);
+
+        // Load the associated fee record for notification content
+        FeeRecord feeRecord = feeRecordMapper.selectById(alert.getFeeRecordId());
+        if (feeRecord == null) {
+            log.warn("Fee record not found for alert id={}", alert.getId());
+            return;
+        }
+
+        String feeTypeLabel = resolveFeeTypeLabel(feeRecord.getFeeType());
+
+        if (EscalationLevel.DEPT_HEAD.equals(targetLevel)) {
+            List<Long> userIds = notificationService.findUserIdsByDeptAndRole(
+                    alert.getDeptId(), "ROLE_SECRETARY");
+            List<Long> adminIds = notificationService.findUserIdsByDeptAndRole(
+                    alert.getDeptId(), "ROLE_DEPT_ADMIN");
+            userIds.addAll(adminIds);
+
+            String title = "费用预警升级 — 请部门负责人处理";
+            String content = String.format(
+                    "费用「%s」已于 %s 到期，首次预警已发送3天仍未处理。请部门负责人督促处理。",
+                    feeTypeLabel, feeRecord.getDueDate());
+
+            for (Long userId : userIds) {
+                notificationService.send(userId, "ALERT", title, content,
+                        "fee", feeRecord.getId());
+            }
+            log.info("Manual escalation to DEPT_HEAD: alertId={}", alertRecordId);
+
+        } else if (EscalationLevel.LEADERSHIP.equals(targetLevel)) {
+            List<Long> userIds = notificationService.findUserIdsByDeptAndRole(
+                    alert.getDeptId(), "ROLE_LEADER");
+
+            String title = "费用预警升级 — 请院领导关注";
+            String content = String.format(
+                    "费用「%s」已于 %s 到期，部门负责人通知已发送5天仍未处理。请院领导关注处理。",
+                    feeTypeLabel, feeRecord.getDueDate());
+
+            for (Long userId : userIds) {
+                notificationService.send(userId, "ALERT", title, content,
+                        "fee", feeRecord.getId());
+            }
+            log.info("Manual escalation to LEADERSHIP: alertId={}", alertRecordId);
         }
     }
 

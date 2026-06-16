@@ -66,4 +66,29 @@ public interface AlertRecordService {
      * @param ids list of alert record IDs to resolve
      */
     void batchResolve(List<Long> ids);
+
+    /**
+     * Scan pending alerts and escalate based on age (D-24).
+     * <p>
+     * State machine:
+     * <ol>
+     *   <li>Alerts unresolved for &ge; 3 days -> escalated to DEPT_HEAD</li>
+     *   <li>Alerts unresolved for &ge; 8 days -> escalated to LEADERSHIP</li>
+     * </ol>
+     * Sends in-app notifications to the appropriate RBAC-routed users
+     * (dept head / leadership roles).
+     *
+     * @return count of alerts that were escalated
+     */
+    int processEscalations();
+
+    /**
+     * Manually trigger escalation for a single alert record.
+     * <p>
+     * Same logic as {@link #processEscalations()} but for a specific alert.
+     * Used by the manual escalation endpoint.
+     *
+     * @param alertRecordId the alert record ID to escalate
+     */
+    void processSingleEscalation(Long alertRecordId);
 }

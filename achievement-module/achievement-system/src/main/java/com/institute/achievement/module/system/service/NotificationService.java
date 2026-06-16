@@ -6,6 +6,7 @@ import com.institute.achievement.common.exception.AchievementException;
 import com.institute.achievement.framework.security.SecurityUtils;
 import com.institute.achievement.module.system.entity.Notification;
 import com.institute.achievement.module.system.mapper.NotificationMapper;
+import com.institute.achievement.module.system.mapper.SysUserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -33,6 +35,7 @@ public class NotificationService {
 
     private final NotificationMapper notificationMapper;
     private final StringRedisTemplate redisTemplate;
+    private final SysUserMapper sysUserMapper;
 
     /**
      * Send a notification to a user.
@@ -144,24 +147,30 @@ public class NotificationService {
     /**
      * Send approval notification to all department secretaries.
      * Called when an achievement is submitted for department review.
+     * <p>
+     * Phase 2 upgrade: sends notifications to real users via RBAC query
+     * instead of the Phase 1 sentinel userId=0 pattern.
      */
     @Transactional
     public void notifyDeptSecretaries(Long deptId, String achievementType,
                                        Long achievementId, String title) {
-        // Find all users in this department with secretary role
-        // For Phase 1, we use a simplified approach: a secretary notification channel
-        // In Phase 2 with full RBAC, this will query sys_user + sys_user_role
         String notificationTitle = "新的审批待办：" + title;
         String content = "成果《" + title + "》已提交，请尽快审核。";
 
-        // Note: In production, this queries the user/role service.
-        // For Phase 1, we create a department-scoped notification pattern.
-        // The actual user notification happens when the secretary polls their inbox.
-        // We store it with userId as a sentinel value (0 = department notification)
-        // In Phase 2, this will be replaced with proper role-based notification.
-        send(0L, "APPROVAL", notificationTitle, content, achievementType, achievementId);
-        log.info("Dept secretaries notified: deptId={}, achievementType={}, id={}",
-                deptId, achievementType, achievementId);
+        // RBAC query: find all users in this department with secretary role
+        List<Long> userIds = findUserIdsByDeptAndRole(deptId, "ROLE_SECRETARY");
+        if (userIds.isEmpty()) {
+            log.warn("No users found with ROLE_SECRETARY in deptId={}, fallback to sentinel", deptId);
+            // Fallback: send to sentinel userId=0 (Phase 1 compatibility)
+            send(0L, "APPROVAL", notificationTitle, content, achievementType, achievementId);
+        } else {
+            for (Long userId : userIds) {
+                send(userId, "APPROVAL", notificationTitle, content, achievementType, achievementId);
+            }
+        }
+
+        log.info("Dept secretaries notified: deptId={}, achievementType={}, id={}, userCount={}",
+                deptId, achievementType, achievementId, userIds.size());
     }
 
     /**
@@ -187,6 +196,28 @@ public class NotificationService {
         // For Phase 1, the caller provides the userId or this is done directly
         log.info("Submitter notification queued: achievementId={}, type={}, message='{}'",
                 achievementId, type, message);
+    }
+
+    /**
+     * Find all user IDs in a department that have a specific role.
+     * <p>
+     * Used by alert escalation and notification routing to send
+     * role-appropriate notifications (T-02-04-03 mitigation).
+     *
+     * @param deptId   the department ID to search in
+     * @param roleCode the role code (e.g. "ROLE_SECRETARY", "ROLE_LEADER")
+     * @return list of user IDs with the specified role in the department (may be empty)
+     */
+    public List<Long> findUserIdsByDeptAndRole(Long deptId, String roleCode) {
+        if (deptId == null) {
+            log.warn("findUserIdsByDeptAndRole called with null deptId");
+            return List.of();
+        }
+        List<Long> userIds = sysUserMapper.findUserIdsByDeptAndRole(deptId, roleCode);
+        if (userIds.isEmpty()) {
+            log.warn("No users found for deptId={}, roleCode={}", deptId, roleCode);
+        }
+        return userIds;
     }
 
     /**
