@@ -7,22 +7,22 @@
 
 ### 成果登记 (REG)
 
-- [ ] **REG-01**: 科研人员可登记论文成果，填写标题、作者、期刊、DOI、ISSN/CN、卷期页码、发表年份、收录情况、影响因子、分区、摘要等字段
-- [ ] **REG-02**: 科研人员可登记专利成果，填写专利名称、发明人、申请号、授权号、申请日、授权日、专利类型、国别、年费下次缴费日、法律状态等字段
-- [ ] **REG-03**: 科研人员可登记软著成果，填写软著名称、著作权人、登记号、登记日期、版本号、软件类别等字段
-- [ ] **REG-04**: 系统支持DOI自动补全论文信息（对接Crossref/Scopus/OpenAlex，多源可切换优先级）
-- [ ] **REG-05**: 系统支持Excel/RIS批量导入已有成果数据
-- [ ] **REG-06**: 系统支持轻量级成果-课题关联，登记成果时可选择所属课题/项目
-- [ ] **REG-07**: 系统支持成果附件上传（PDF原文、证书、缴费凭证等），支持下载权限校验
-- [ ] **REG-08**: 系统支持成果注销/作废，留存作废原因与操作记录
-- [ ] **REG-09**: 同一DOI/申请号仅允许登记一条数据，重复提交自动拦截
-- [ ] **REG-10**: 涉密成果标记后仅授权人员可查看/下载附件
+- [x] **REG-01**: 科研人员可登记论文成果，填写标题、作者、期刊、DOI、ISSN/CN、卷期页码、发表年份、收录情况、影响因子、分区、摘要等字段
+- [x] **REG-02**: 科研人员可登记专利成果，填写专利名称、发明人、申请号、授权号、申请日、授权日、专利类型、国别、年费下次缴费日、法律状态等字段
+- [x] **REG-03**: 科研人员可登记软著成果，填写软著名称、著作权人、登记号、登记日期、版本号、软件类别等字段
+- [x] **REG-04**: 系统支持DOI自动补全论文信息（对接Crossref/Scopus/OpenAlex，多源可切换优先级）
+- [x] **REG-05**: 系统支持Excel/RIS批量导入已有成果数据
+- [x] **REG-06**: 系统支持轻量级成果-课题关联，登记成果时可选择所属课题/项目
+- [x] **REG-07**: 系统支持成果附件上传（PDF原文、证书、缴费凭证等），支持下载权限校验
+- [x] **REG-08**: 系统支持成果注销/作废，留存作废原因与操作记录
+- [x] **REG-09**: 同一DOI/申请号仅允许登记一条数据，重复提交自动拦截
+- [x] **REG-10**: 涉密成果标记后仅授权人员可查看/下载附件
 
 ### 审批流程 (APPR)
 
-- [ ] **APPR-01**: 基础三步审批流：科研人员提交 → 部门科研秘书初审 → 系统管理员归档
-- [ ] **APPR-02**: 所有审批操作留存完整操作日志（操作人、时间、IP、变更前后内容）
-- [ ] **APPR-03**: 审批待办通过站内消息通知审批人
+- [x] **APPR-01**: 基础三步审批流：科研人员提交 → 部门科研秘书初审 → 系统管理员归档
+- [x] **APPR-02**: 所有审批操作留存完整操作日志（操作人、时间、IP、变更前后内容）
+- [x] **APPR-03**: 审批待办通过站内消息通知审批人
 
 ### 费用管理 (FEE)
 
@@ -67,7 +67,7 @@
 
 ### 外部API集成 (API)
 
-- [ ] **API-01**: DOI自动补全（集成Crossref/Scopus/OpenAlex，多源切换、优先级配置）
+- [x] **API-01**: DOI自动补全（集成Crossref/Scopus/OpenAlex，多源切换、优先级配置）
 - [ ] **API-02**: 邮件推送通知（企业邮箱SMTP）
 - [ ] **API-03**: 接口统一规范：配置中心管理密钥、超时时间自定义、自动重试最多3次、失败告警
 - [ ] **API-04**: 接口故障时启用手工录入降级方案
@@ -145,12 +145,12 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SYS-01 ~ SYS-08 | Phase 0 — Foundation & Infrastructure | Pending |
-| API-03 ~ API-04 | Phase 0 — Foundation & Infrastructure | Pending |
-| OPS-01 ~ OPS-03 | Phase 0 — Foundation & Infrastructure | Pending |
-| REG-01 ~ REG-10 | Phase 1 — Achievement Registration & Approval | Pending |
-| APPR-01 ~ APPR-03 | Phase 1 — Achievement Registration & Approval | Pending |
-| API-01 | Phase 1 — Achievement Registration & Approval | Pending |
+| SYS-01 ~ SYS-08 | Phase 0 — Foundation & Infrastructure | Complete |
+| API-03 ~ API-04 | Phase 0 — Foundation & Infrastructure | Complete |
+| OPS-01 ~ OPS-03 | Phase 0 — Foundation & Infrastructure | Complete |
+| REG-01 ~ REG-10 | Phase 1 — Achievement Registration & Approval | Complete |
+| APPR-01 ~ APPR-03 | Phase 1 — Achievement Registration & Approval | Complete |
+| API-01 | Phase 1 — Achievement Registration & Approval | Complete |
 | FEE-01 ~ FEE-06 | Phase 2 — Fee Management & Alerts | Pending |
 | STAT-01 ~ STAT-02 | Phase 3 — Dashboard & Search | Pending |
 | SRCH-01 ~ SRCH-04 | Phase 3 — Dashboard & Search | Pending |
