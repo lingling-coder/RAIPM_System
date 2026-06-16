@@ -11,6 +11,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Classified achievement access control service (Phase 1 version).
  * <p>
@@ -73,10 +76,74 @@ public class ClassifiedPermissionService {
     }
 
     /**
+     * Enhanced attachment download check that takes achievement context.
+     * Checks whether the user is allowed to download an attachment from
+     * a specific achievement (considering classified access).
+     *
+     * @param achievementType the achievement type
+     * @param achievementId   the achievement ID
+     * @param userId          the user ID
+     * @return true if the user can download the attachment
+     */
+    public boolean canUserViewAttachment(String achievementType, Long achievementId, Long userId) {
+        // Check classified permission on the achievement
+        return canViewAchievement(achievementType, achievementId, userId);
+    }
+
+    /**
      * Check if a user has the classified management role.
      */
     public boolean canViewClassifiedAchievement(Long userId) {
         return hasClassifiedRole(userId);
+    }
+
+    /**
+     * Filter a list of achievement IDs to only include those visible
+     * to the specified user (removing classified achievements the user
+     * is not authorized to view).
+     * <p>
+     * Used by PaperService/PatentService/CopyrightService page queries
+     * to filter out unauthorized classified items.
+     *
+     * @param ids             list of achievement IDs to filter
+     * @param achievementType the achievement type
+     * @param userId          the user ID
+     * @return filtered list containing only visible achievement IDs
+     */
+    public List<Long> filterClassifiedAchievements(List<Long> ids, String achievementType, Long userId) {
+        if (ids == null || ids.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        boolean isClassifiedManager = hasClassifiedRole(userId);
+        List<Long> visibleIds = new ArrayList<>();
+
+        for (Long id : ids) {
+            Integer isClassified = getClassifiedFlag(achievementType, id);
+            if (isClassified == null) {
+                continue; // Achievement not found, skip
+            }
+            if (isClassified == 0) {
+                visibleIds.add(id); // Non-classified: always visible
+            } else if (isClassifiedManager || isCreator(achievementType, id, userId)) {
+                visibleIds.add(id); // Classified: only manager or creator
+            }
+        }
+
+        return visibleIds;
+    }
+
+    /**
+     * Get the classified role of a user.
+     *
+     * @param userId the user ID
+     * @return "CLASSIFIED_MANAGER" if the user has the role, "NONE" otherwise
+     */
+    public String getUserClassifiedRole(Long userId) {
+        if (hasClassifiedRole(userId)) {
+            return "CLASSIFIED_MANAGER";
+        }
+        return "NONE";
     }
 
     // ── Internal Helpers ────────────────────────────────────────────
