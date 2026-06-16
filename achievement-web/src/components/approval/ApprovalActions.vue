@@ -98,6 +98,7 @@ const props = defineProps<{
   achievementId: number
   status: string
   isAdmin: boolean
+  loading: boolean
 }>()
 
 const emit = defineEmits<{
@@ -106,7 +107,6 @@ const emit = defineEmits<{
   archive: [archiveNo: string]
 }>()
 
-const loading = ref(false)
 const showRejectInput = ref(false)
 const rejectReason = ref('')
 const archiveNo = ref('')
@@ -145,12 +145,9 @@ async function handlePass() {
       '确认通过',
       { type: 'info', confirmButtonText: '确认通过', cancelButtonText: '取消' }
     )
-    loading.value = true
     emit('pass')
   } catch {
     // User cancelled
-  } finally {
-    loading.value = false
   }
 }
 
@@ -165,14 +162,11 @@ async function handleReject() {
       '确认退回',
       { type: 'info', confirmButtonText: '确认退回', cancelButtonText: '取消' }
     )
-    loading.value = true
     emit('reject', rejectReason.value.trim())
     showRejectInput.value = false
     rejectReason.value = ''
   } catch {
     // User cancelled
-  } finally {
-    loading.value = false
   }
 }
 
@@ -186,12 +180,9 @@ async function handleArchive() {
       '分配归档号',
       { type: 'info', confirmButtonText: '确认归档', cancelButtonText: '取消' }
     )
-    loading.value = true
     emit('archive', archiveVal || '')
   } catch {
     // User cancelled
-  } finally {
-    loading.value = false
   }
 }
 </script>

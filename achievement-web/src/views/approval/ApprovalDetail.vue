@@ -97,6 +97,7 @@
           :achievement-id="achievementId"
           :status="detail.status"
           :is-admin="isAdmin"
+          :loading="actionLoading"
           @pass="handlePass"
           @reject="handleReject"
           @archive="handleArchive"
@@ -126,6 +127,7 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const loading = ref(false)
+const actionLoading = ref(false)
 const detail = ref<any>(null)
 const achievementType = ref<string>('paper')
 const achievementId = ref<number>(0)
@@ -223,6 +225,7 @@ function downloadAttachment(row: any) {
 }
 
 async function handlePass() {
+  actionLoading.value = true
   try {
     const res: any = await approvalApi.approve(achievementType.value, achievementId.value)
     if (res?.code === 200) {
@@ -231,10 +234,13 @@ async function handlePass() {
     }
   } catch {
     ElMessage.error('审批操作失败')
+  } finally {
+    actionLoading.value = false
   }
 }
 
 async function handleReject(reason: string) {
+  actionLoading.value = true
   try {
     const res: any = await approvalApi.reject(achievementType.value, achievementId.value, reason)
     if (res?.code === 200) {
@@ -243,10 +249,13 @@ async function handleReject(reason: string) {
     }
   } catch {
     ElMessage.error('退回操作失败')
+  } finally {
+    actionLoading.value = false
   }
 }
 
 async function handleArchive(archiveNo: string) {
+  actionLoading.value = true
   try {
     const res: any = await approvalApi.approve(achievementType.value, achievementId.value, '', archiveNo)
     if (res?.code === 200) {
@@ -255,6 +264,8 @@ async function handleArchive(archiveNo: string) {
     }
   } catch {
     ElMessage.error('归档操作失败')
+  } finally {
+    actionLoading.value = false
   }
 }
 </script>
