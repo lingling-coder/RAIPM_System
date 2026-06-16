@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.institute.achievement.fee.mapper.FeeStatsMapper">
+
+    <!--
+        Fee statistics aggregation queries for Plan 02-05.
+        All queries use MySQL GROUP BY with CASE WHEN for computed columns.
+        Composite index idx_fee_record_stats covers common filter patterns.
+    -->
+
+    <!-- ── Shared WHERE clause fragment ───────────────────────────────
+
+         Reused by getOverview and summarizeByDimension.
+         NOTE: When patentType filter is applied, the calling query MUST
+         include the patent LEFT JOIN so that p.patent_type is available.
+    -->
+    <sql id="statsWhereClause">
+        <where>
+            <if test="deptId != null">
+                AND fr.dept_id = #{deptId}
+            </if>
+            <if test="year != null">
+                AND YEAR(fr.due_date) = #{year}
+            </if>
+            <if test="patentType != null and patentType != ''">
+                AND p.patent_type = #{patentType}
+            </if>
+            <if test="fundingSource != null and fundingSource != ''">
+                AND fr.funding_source = #{fundingSource}
+            </if>
+        </where>
+    </sql>
+
+    <!-- ── Overview query ─────────────────────────────────────────────
+
+         Returns a single row of aggregate values across all (filtered) records.
+         When patentType filter is used, the patent LEFT JOIN is required.
+    -->
+    <select id="getOverview" resultType="com.institute.achievement.fee.dto.FeeStatsVO">
+        SELECT
+            COALESCE(SUM(fr.amount), 0) AS totalAmount,
+            COALESCE(SUM(CASE WHEN fr.status = 'paid' THEN fr.paid_amount ELSE 0 END), 0) AS totalPaid,
+            COALESCE(SUM(CASE WHEN fr.status = 'pending' THEN fr.amount ELSE 0 END), 0) AS totalPending,
+            COALESCE(SUM(CASE WHEN fr.status = 'pending' AND fr.due_date &lt; CURDATE() THEN fr.amount ELSE 0 END), 0) AS totalOverdue,
+            COUNT(*) AS recordCount
+        FROM fee_record fr
+        <if test="patentType != null and patentType != ''">
+            LEFT JOIN patent p ON fr.owner_type = 'patent' AND fr.owner_id = p.id
+        </if>
+        <include refid="statsWhereClause"/>
+    </select>
+
+    <!-- ── Dimension summary query ────────────────────────────────────
+
+         Groups fee records by the selected dimension with aggregation.
+         Uses a <choose> block to select the appropriate SQL expression
+         for each dimension, avoiding ${dimension} interpolation (T-02-05-02).
+
+         Dimension mappings:
+         - dept_id:        GROUP BY fr.dept_id, JOIN sys_department for name
+         - YEAR(due_date): GROUP BY YEAR(fr.due_date)
+         - patent_type:    GROUP BY p.patent_type, LEFT JOIN patent table
+         - funding_source: GROUP BY fr.funding_source
+    -->
+    <select id="summarizeByDimension" resultType="com.institute.achievement.fee.dto.FeeStatsVO">
+        SELECT
+            COALESCE(SUM(fr.amount), 0) AS totalAmount,
+            COALESCE(SUM(CASE WHEN fr.status = 'paid' THEN fr.paid_amount ELSE 0 END), 0) AS totalPaid,
+            COALESCE(SUM(CASE WHEN fr.status = 'pending' THEN fr.amount ELSE 0 END), 0) AS totalPending,
+            COALESCE(SUM(CASE WHEN fr.status = 'pending' AND fr.due_date &lt; CURDATE() THEN fr.amount ELSE 0 END), 0) AS totalOverdue,
+            COUNT(*) AS recordCount,
+
+            <choose>
+                <when test="dimension == 'dept_id'">
+                    sd.dept_name AS dimensionValue,
+                    CAST(fr.dept_id AS CHAR) AS dimensionCode
+                </when>
+                <when test="dimension == 'YEAR(due_date)'">
+                    CAST(YEAR(fr.due_date) AS CHAR) AS dimensionValue,
+                    CAST(YEAR(fr.due_date) AS CHAR) AS dimensionCode
+                </when>
+                <when test="dimension == 'patent_type'">
+                    COALESCE(p.patent_type, 'other') AS dimensionValue,
+                    COALESCE(p.patent_type, 'other') AS dimensionCode
+                </when>
+                <when test="dimension == 'funding_source'">
+                    fr.funding_source AS dimensionValue,
+                    fr.funding_source AS dimensionCode
+                </when>
+                <otherwise>
+                    NULL AS dimensionValue,
+                    NULL AS dimensionCode
+                </otherwise>
+            </choose>
+
+        FROM fee_record fr
+
+        <if test="dimension == 'dept_id'">
+            LEFT JOIN sys_department sd ON fr.dept_id = sd.id
+        </if>
+
+        <if test="dimension == 'patent_type' or (patentType != null and patentType != '')">
+            LEFT JOIN patent p ON fr.owner_type = 'patent' AND fr.owner_id = p.id
+        </if>
+
+        <include refid="statsWhereClause"/>
+
+        GROUP BY
+        <choose>
+            <when test="dimension == 'dept_id'">
+                fr.dept_id, sd.dept_name
+            </when>
+            <when test="dimension == 'YEAR(due_date)'">
+                YEAR(fr.due_date)
+            </when>
+            <when test="dimension == 'patent_type'">
+                p.patent_type
+            </when>
+            <when test="dimension == 'funding_source'">
+                fr.funding_source
+            </when>
+            <otherwise>
+                -- Invalid dimension (should not reach here due to service whitelist)
+                1
+            </otherwise>
+        </choose>
+
+        ORDER BY dimensionValue ASC
+    </select>
+
+</mapper>
