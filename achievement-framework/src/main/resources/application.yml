@@ -16,3 +16,9 @@ server:
       charset: UTF-8
       enabled: true
       force: true
+
+# ── JWT Configuration ──────────────────────────────────────────────────────
+jwt:
+  secret: AchievementJWTSecretKeyForHMACSHA256LengthRequirement2024
+  access-token-expiration: 7200000  # 2 hours in ms
+  refresh-token-expiration: 604800000  # 7 days in ms
