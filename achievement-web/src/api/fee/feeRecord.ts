@@ -104,3 +104,19 @@ export function update(id: number, data: FeeRecordDTO) {
 export function remove(id: number) {
   return http.delete(`/api/fees/${id}`)
 }
+
+// ── Batch Payment Operations (02-04 Task 3) ──────────────────────────
+
+/**
+ * Batch generate slip numbers for selected pending fee records.
+ */
+export function batchGenerateSlips(ids: number[]) {
+  return http.post('/api/fees/batch-generate-slips', { ids })
+}
+
+/**
+ * Batch mark fee records as paid.
+ */
+export function batchPay(data: { ids: number[], paidDate: string, voucherNo: string, slipNo: string }) {
+  return http.put('/api/fees/batch-pay', data)
+}

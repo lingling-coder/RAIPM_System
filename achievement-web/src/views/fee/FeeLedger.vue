@@ -63,6 +63,14 @@
         {{ showAdvanced ? '收起高级筛选' : '高级筛选' }}
         <el-icon><ArrowUp v-if="showAdvanced" /><ArrowDown v-else /></el-icon>
       </el-button>
+
+      <el-button
+        type="success"
+        :disabled="selectedRecords.length === 0"
+        @click="openBatchPayDialog"
+      >
+        生成缴费单
+      </el-button>
     </div>
 
     <!-- Advanced filters (collapsible) -->
@@ -81,6 +89,7 @@
       :data="tableData"
       style="width: 100%; margin-top: 16px"
       @row-click="goToDetail"
+      @selection-change="onSelectionChange"
     >
       <el-table-column type="selection" width="50" />
       <el-table-column type="index" label="序号" width="60" />
@@ -179,6 +188,14 @@
       />
     </div>
 
+    <!-- Batch payment dialog (02-04 Task 3) -->
+    <BatchPayDialog
+      v-model:visible="batchPayDialogVisible"
+      :selected-ids="selectedIds"
+      :selected-records="selectedRecords"
+      @success="onBatchPaySuccess"
+    />
+
     <!-- Edit dialog (D-17: dueDate locked, amount/fundingSource editable) -->
     <el-dialog v-model="editDialogVisible" title="编辑费用记录" width="500px">
       <el-form v-if="editForm" :model="editForm" label-width="110px">
@@ -224,12 +241,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import * as feeApi from '@/api/fee/feeRecord'
 import type { FeeRecordVO } from '@/api/fee/feeRecord'
+import BatchPayDialog from '@/views/fee/components/BatchPayDialog.vue'
 
 /** TagType used by Element Plus el-tag */
 type TagType = 'primary' | 'success' | 'warning' | 'info' | 'danger'
@@ -266,6 +284,28 @@ const filters = reactive({
   dueDateTo: null as string | null,
   ownerType: null as string | null,
 })
+
+// ── Batch selection (02-04 Task 3) ────────────────────────────────
+const selectedRecords = ref<FeeRecordVO[]>([])
+const batchPayDialogVisible = ref(false)
+
+const selectedIds = computed(() => {
+  return selectedRecords.value.map(r => r.id)
+})
+
+function openBatchPayDialog() {
+  if (selectedRecords.value.length === 0) {
+    ElMessage.warning('请先选择待缴费的费用记录')
+    return
+  }
+  batchPayDialogVisible.value = true
+}
+
+function onBatchPaySuccess(paidCount: number) {
+  batchPayDialogVisible.value = false
+  selectedRecords.value = []
+  fetchData()
+}
 
 // ── Quick filter logic ────────────────────────────────────────────
 
@@ -364,6 +404,12 @@ function resetFilters() {
   activeQuickTag.value = 'all'
   page.value = 1
   fetchData()
+}
+
+// ── Selection handler (02-04 Task 3) ──────────────────────────────
+
+function onSelectionChange(selection: any[]) {
+  selectedRecords.value = selection as FeeRecordVO[]
 }
 
 // ── Helpers ───────────────────────────────────────────────────────
