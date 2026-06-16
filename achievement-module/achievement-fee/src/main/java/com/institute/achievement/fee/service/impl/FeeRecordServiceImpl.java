@@ -17,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
@@ -152,7 +151,7 @@ public class FeeRecordServiceImpl implements FeeRecordService {
      * from the patent's nextFeeDate per D-11.
      */
     @EventListener
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void onAchievementArchived(AchievementArchivedEvent event) {
         if (!"patent".equals(event.getOwnerType())) {
             return; // Only auto-generate fees for patents (copyright first fee is manual)
