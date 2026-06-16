@@ -5,11 +5,15 @@ import com.institute.achievement.fee.dto.FeeRecordDTO;
 import com.institute.achievement.fee.dto.FeeRecordQueryDTO;
 import com.institute.achievement.fee.dto.FeeRecordVO;
 
+import java.time.LocalDate;
+import java.util.List;
+
 /**
  * Service interface for fee record management.
  * <p>
- * Provides CRUD operations, paginated filtered listing, and access control
- * enforcement per the threat model (T-02-01-01 through T-02-01-05).
+ * Provides CRUD operations, paginated filtered listing, batch slip generation,
+ * batch payment, and access control enforcement per the threat model
+ * (T-02-01-01 through T-02-01-05, T-02-04-01).
  */
 public interface FeeRecordService {
 
@@ -63,4 +67,32 @@ public interface FeeRecordService {
      * @throws com.institute.achievement.common.exception.AchievementException if not pausable or unauthorized
      */
     void delete(Long id);
+
+    /**
+     * Batch-generate slip numbers for selected pending fee records.
+     * <p>
+     * Validates that all specified records exist and are in 'pending' status,
+     * generates unique slip numbers via {@link FeeSlipNumberGenerator#generateSlipNo()},
+     * and persists them to the fee_record table.
+     *
+     * @param ids list of fee record IDs to generate slips for
+     * @return list of generated slip numbers (same order as input IDs)
+     * @throws com.institute.achievement.common.exception.AchievementException if any record
+     *         is not found or not in pending status
+     */
+    List<String> batchGenerateSlips(List<Long> ids);
+
+    /**
+     * Batch mark fee records as paid.
+     * <p>
+     * Updates the status to 'paid' along with payment details (paidDate, voucherNo, slipNo).
+     * Only records in 'pending' status are updated (T-02-04-01 mitigation).
+     *
+     * @param ids       list of fee record IDs to mark as paid
+     * @param paidDate  the payment date
+     * @param voucherNo the payment voucher/receipt number
+     * @param slipNo    the batch slip number
+     * @return number of records actually updated
+     */
+    int batchPay(List<Long> ids, LocalDate paidDate, String voucherNo, String slipNo);
 }

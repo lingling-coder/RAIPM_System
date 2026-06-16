@@ -7,12 +7,19 @@ import com.institute.achievement.fee.dto.FeeRecordQueryDTO;
 import com.institute.achievement.fee.dto.FeeRecordVO;
 import com.institute.achievement.fee.service.FeeRecordService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.util.List;
+
 /**
- * REST controller for fee record CRUD and paginated listing.
+ * REST controller for fee record CRUD, paginated listing, and batch operations.
  * <p>
  * All endpoints return {@link Result}<T> wrapper consistent with the
  * project-wide API response pattern.
@@ -24,6 +31,7 @@ import org.springframework.web.bind.annotation.*;
  *   <li>T-02-01-03: SQL-layer dept_id injection via MyBatis-Plus interceptor</li>
  *   <li>T-02-01-04: Paginated queries limit result set size</li>
  *   <li>T-02-01-05: Delete restricted to creator + paused status in service</li>
+ *   <li>T-02-04-01: Batch payment validates records exist and status='pending' before updating</li>
  * </ul>
  */
 @Slf4j
@@ -113,5 +121,68 @@ public class FeeRecordController {
 
         Page<FeeRecordVO> result = feeRecordService.page(page, size, query);
         return Result.success(result);
+    }
+
+    // ── Batch Payment Operations (02-04 Task 1) ──────────────────────
+
+    /**
+     * Batch-generate slip numbers for selected pending fee records.
+     * <p>
+     * Accepts a list of fee record IDs, validates they are all in 'pending' status,
+     * generates unique slip numbers via Redis INCR for each, and persists them.
+     *
+     * @param request the batch request containing fee record IDs
+     * @return result with list of generated slip numbers
+     */
+    @PostMapping("/batch-generate-slips")
+    public Result<List<String>> batchGenerateSlips(@Valid @RequestBody BatchGenerateSlipsRequest request) {
+        List<String> slipNumbers = feeRecordService.batchGenerateSlips(request.getIds());
+        return Result.success(slipNumbers);
+    }
+
+    /**
+     * Batch mark fee records as paid.
+     * <p>
+     * Updates the status to 'paid' along with payment date, voucher number,
+     * and slip number. Only records in 'pending' status are affected
+     * (T-02-04-01: WHERE status='pending' guard in mapper).
+     *
+     * @param request the batch payment request
+     * @return result with number of records actually updated
+     */
+    @PutMapping("/batch-pay")
+    public Result<Integer> batchPay(@Valid @RequestBody BatchPayRequest request) {
+        int affected = feeRecordService.batchPay(
+                request.getIds(), request.getPaidDate(), request.getVoucherNo(), request.getSlipNo());
+        return Result.success(affected);
+    }
+
+    // ── Request DTOs ─────────────────────────────────────────────────
+
+    /**
+     * Request DTO for batch slip generation.
+     */
+    @Data
+    public static class BatchGenerateSlipsRequest {
+        @NotEmpty(message = "请选择费用记录")
+        private List<Long> ids;
+    }
+
+    /**
+     * Request DTO for batch payment.
+     */
+    @Data
+    public static class BatchPayRequest {
+        @NotEmpty(message = "请选择费用记录")
+        private List<Long> ids;
+
+        @NotNull(message = "请选择缴费日期")
+        private LocalDate paidDate;
+
+        @NotBlank(message = "凭证号不能为空")
+        private String voucherNo;
+
+        @NotBlank(message = "缴费单号不能为空")
+        private String slipNo;
     }
 }

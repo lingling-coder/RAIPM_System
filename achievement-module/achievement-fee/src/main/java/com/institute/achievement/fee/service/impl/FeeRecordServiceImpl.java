@@ -11,6 +11,7 @@ import com.institute.achievement.fee.entity.FeeRecord;
 import com.institute.achievement.fee.enums.FeeStatusEnum;
 import com.institute.achievement.fee.mapper.FeeRecordMapper;
 import com.institute.achievement.fee.service.FeeRecordService;
+import com.institute.achievement.fee.service.FeeSlipNumberGenerator;
 import com.institute.achievement.framework.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,9 +19,13 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Fee record service implementation.
@@ -40,6 +45,7 @@ import java.time.LocalDateTime;
 public class FeeRecordServiceImpl implements FeeRecordService {
 
     private final FeeRecordMapper feeRecordMapper;
+    private final FeeSlipNumberGenerator feeSlipNumberGenerator;
 
     @Override
     @Transactional
@@ -185,6 +191,62 @@ public class FeeRecordServiceImpl implements FeeRecordService {
         feeRecordMapper.insert(record);
         log.info("First fee auto-generated for {}/{}: id={}",
                 event.getOwnerType(), event.getOwnerId(), record.getId());
+    }
+
+    @Override
+    @Transactional
+    public List<String> batchGenerateSlips(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new AchievementException(4003, "请选择要生成缴费单的费用记录");
+        }
+
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        List<String> slipNumbers = new ArrayList<>(ids.size());
+
+        for (Long id : ids) {
+            FeeRecord record = feeRecordMapper.selectById(id);
+            if (record == null) {
+                throw AchievementException.notFound("费用记录", id);
+            }
+            if (!"pending".equals(record.getStatus())) {
+                throw AchievementException.invalidTransition(record.getStatus(), "batchGenerateSlips");
+            }
+
+            // Generate a unique slip number for each record
+            String slipNo = feeSlipNumberGenerator.generateSlipNo();
+
+            // Persist the slip number
+            int updated = feeRecordMapper.updateSlipNo(id, slipNo, currentUserId);
+            if (updated == 0) {
+                log.warn("Failed to update slip_no for feeRecord id={}", id);
+                // Continue generating for remaining records — partial success is acceptable
+            }
+
+            slipNumbers.add(slipNo);
+            log.debug("Slip generated for feeRecord id={}: slipNo={}", id, slipNo);
+        }
+
+        log.info("Batch slip generation: {} slips generated for {} records", slipNumbers.size(), ids.size());
+        return slipNumbers;
+    }
+
+    @Override
+    @Transactional
+    public int batchPay(List<Long> ids, LocalDate paidDate, String voucherNo, String slipNo) {
+        if (ids == null || ids.isEmpty()) {
+            throw new AchievementException(4003, "请选择要标记为已缴费的费用记录");
+        }
+        if (!StringUtils.hasText(voucherNo)) {
+            throw new AchievementException(4003, "凭证号不能为空");
+        }
+
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+
+        // batchMarkAsPaid has WHERE status='pending' guard (T-02-04-01)
+        int affected = feeRecordMapper.batchMarkAsPaid(ids, paidDate, voucherNo, slipNo, currentUserId);
+
+        log.info("Batch payment: {} records marked as paid, voucher={}", affected, voucherNo);
+        return affected;
     }
 
     // ── Internal Helpers ──────────────────────────────────────────────
