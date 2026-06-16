@@ -48,14 +48,13 @@ export const useNotificationStore = defineStore('notification', () => {
   }
 
   /**
-   * Mark a notification as read and decrement local count.
+   * Mark a notification as read and refresh count from server.
    */
   async function markAsRead(id: number) {
     try {
       await notificationApi.markAsRead(id)
-      if (unreadCount.value > 0) {
-        unreadCount.value--
-      }
+      // Re-fetch from server for accuracy instead of local decrement
+      await fetchUnreadCount()
     } catch {
       // Silent fail
     }
