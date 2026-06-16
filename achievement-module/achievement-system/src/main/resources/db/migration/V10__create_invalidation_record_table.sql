@@ -7,5 +7,6 @@ CREATE TABLE `invalidation_record` (
     reason TEXT NOT NULL COMMENT '作废原因',
     created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_achievement (achievement_type, achievement_id),
-    INDEX idx_invalidator (invalidator_id)
+    INDEX idx_invalidator (invalidator_id),
+    INDEX idx_created_time (created_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
