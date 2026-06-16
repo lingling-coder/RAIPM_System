@@ -332,37 +332,6 @@ async function handleInvalidate() {
   if (!achievementType.value || !detail.value?.id) return
 
   try {
-    // Show prompt dialog with reason textarea
-    await ElMessageBox.confirm(
-      '确认作废该成果？此操作不可撤销。作废后仅创建人和系统管理员可见。',
-      '确认作废',
-      {
-        type: 'warning',
-        confirmButtonText: '确认作废',
-        cancelButtonText: '取消',
-        distinguishCancelAndClose: true,
-        inputType: 'textarea',
-        inputPlaceholder: '请填写作废原因（必填）',
-        inputValidator: (value: string) => {
-          if (!value || !value.trim()) return '请填写作废原因'
-          if (value.trim().length > 500) return '作废原因不超过500字'
-          return true
-        },
-        inputErrorMessage: '作废原因不能为空',
-      }
-    )
-
-    // Proceed with invalidation
-    invalidating.value = true
-    // We use innerHTML to get the textarea value from the dialog
-    // ElMessageBox with input returns the input value as the 2nd arg of .then
-  } catch { /* cancelled */ return }
-
-  // Show a second prompt for the reason if needed - actually ElMessageBox.confirm
-  // with inputType supports input directly. But the standard pattern is to use
-  // ElMessageBox.prompt instead for input dialogs.
-  // Let's use ElMessageBox.prompt with custom configuration.
-  try {
     const { value: reason } = await ElMessageBox.prompt(
       '作废后仅创建人和系统管理员可见。此操作不可撤销。',
       '确认作废',
@@ -370,7 +339,7 @@ async function handleInvalidate() {
         confirmButtonText: '确认作废',
         cancelButtonText: '取消',
         inputType: 'textarea',
-        inputPlaceholder: '请填写作废原因',
+        inputPlaceholder: '请填写作废原因（必填）',
         inputValidator: (value: string) => {
           if (!value || !value.trim()) return '请填写作废原因'
           if (value.trim().length > 500) return '作废原因不超过500字'
