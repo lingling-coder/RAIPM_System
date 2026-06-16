@@ -23,6 +23,18 @@
             <groupId>com.institute</groupId>
             <artifactId>achievement-framework</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.institute</groupId>
+            <artifactId>achievement-paper</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.institute</groupId>
+            <artifactId>achievement-patent</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.institute</groupId>
+            <artifactId>achievement-copyright</artifactId>
+        </dependency>
 
         <!-- Spring Boot -->
         <dependency>
@@ -63,6 +75,24 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
+        </dependency>
+
+        <!-- Spring Data Redis (for notification unread count) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+        <!-- Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
