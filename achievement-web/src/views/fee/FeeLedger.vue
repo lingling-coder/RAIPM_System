@@ -93,15 +93,15 @@
       </el-table-column>
       <el-table-column label="关联成果" min-width="180" show-overflow-tooltip>
         <template #default="scope">
-          <el-link type="primary" :underline="false" @click.stop="goToAchievement(scope.row)">
-            {{ scope.row.ownerName || '—' }}
+          <el-link type="primary" :underline="false" @click.stop="goToAchievement(asFee(scope.row))">
+            {{ (asFee(scope.row)).ownerName || '—' }}
           </el-link>
         </template>
       </el-table-column>
       <el-table-column label="截止日期" width="120">
         <template #default="scope">
-          <span :style="{ color: dueDateColor(scope.row) }">
-            {{ scope.row.dueDate || '—' }}
+          <span :style="{ color: dueDateColor(asFee(scope.row)) }">
+            {{ asFee(scope.row).dueDate || '—' }}
           </span>
         </template>
       </el-table-column>
@@ -135,14 +135,14 @@
       </el-table-column>
       <el-table-column label="操作" width="160" fixed="right">
         <template #default="scope">
-          <el-button size="small" type="primary" link @click.stop="viewDetail(scope.row)">查看</el-button>
-          <el-button size="small" type="warning" link @click.stop="openEdit(scope.row)">编辑</el-button>
+          <el-button size="small" type="primary" link @click.stop="viewDetail(asFee(scope.row))">查看</el-button>
+          <el-button size="small" type="warning" link @click.stop="openEdit(asFee(scope.row))">编辑</el-button>
           <el-button
             size="small"
             type="danger"
             link
-            :disabled="scope.row.status !== 'paused'"
-            @click.stop="handleDelete(scope.row)"
+            :disabled="asFee(scope.row).status !== 'paused'"
+            @click.stop="handleDelete(asFee(scope.row))"
           >
             删除
           </el-button>
@@ -217,6 +217,9 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import * as feeApi from '@/api/fee/feeRecord'
 import type { FeeRecordVO } from '@/api/fee/feeRecord'
+
+/** TagType used by Element Plus el-tag */
+type TagType = 'primary' | 'success' | 'warning' | 'info' | 'danger'
 
 const router = useRouter()
 
@@ -350,6 +353,10 @@ function resetFilters() {
   fetchData()
 }
 
+// ── Helpers ───────────────────────────────────────────────────────
+/** Cast table row to FeeRecordVO for type safety in el-table scoped slots */
+function asFee(row: any): FeeRecordVO { return row as FeeRecordVO }
+
 // ── Navigation ────────────────────────────────────────────────────
 
 function goToDetail(row: FeeRecordVO) {
@@ -435,8 +442,8 @@ async function saveEdit() {
 
 // ── Display helpers ───────────────────────────────────────────────
 
-function feeTagType(feeType: string): string {
-  const map: Record<string, string> = {
+function feeTagType(feeType: string): TagType {
+  const map: Record<string, TagType> = {
     annual_fee: 'primary',
     registration_fee: 'success',
     maintenance_fee: 'warning',
@@ -445,8 +452,8 @@ function feeTagType(feeType: string): string {
   return map[feeType] || 'info'
 }
 
-function statusTagType(status: string): string {
-  const map: Record<string, string> = {
+function statusTagType(status: string): TagType {
+  const map: Record<string, TagType> = {
     pending: 'warning',
     paid: 'success',
     paused: 'info',

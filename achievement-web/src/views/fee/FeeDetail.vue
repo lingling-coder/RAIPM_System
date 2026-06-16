@@ -58,9 +58,10 @@
       <!-- Tab: Attachments (D-09) -->
       <el-tab-pane label="附件" name="attachments">
         <AttachmentUploader
-          :owner-type="detail.ownerType"
-          :owner-id="detail.ownerId"
-          :readonly="detail.status === 'paid' || detail.status === 'paused'"
+          :achievement-type="detail.ownerType"
+          :achievement-id="detail.ownerId"
+          :is-classified="false"
+          :show-delete="detail.status !== 'paid' && detail.status !== 'paused'"
         />
       </el-tab-pane>
 
@@ -78,6 +79,8 @@ import { useRoute, useRouter } from 'vue-router'
 import * as feeApi from '@/api/fee/feeRecord'
 import type { FeeRecordVO } from '@/api/fee/feeRecord'
 import AttachmentUploader from '@/components/achievement/AttachmentUploader.vue'
+
+type TagType = 'primary' | 'success' | 'warning' | 'info' | 'danger'
 
 const route = useRoute()
 const router = useRouter()
@@ -114,8 +117,8 @@ function goToAchievement() {
   }
 }
 
-function feeTagType(feeType: string): string {
-  const map: Record<string, string> = {
+function feeTagType(feeType: string): TagType {
+  const map: Record<string, TagType> = {
     annual_fee: 'primary',
     registration_fee: 'success',
     maintenance_fee: 'warning',
@@ -124,8 +127,8 @@ function feeTagType(feeType: string): string {
   return map[feeType] || 'info'
 }
 
-function statusTagType(status: string): string {
-  const map: Record<string, string> = {
+function statusTagType(status: string): TagType {
+  const map: Record<string, TagType> = {
     pending: 'warning',
     paid: 'success',
     paused: 'info',
