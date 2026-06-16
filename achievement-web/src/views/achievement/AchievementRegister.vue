@@ -91,7 +91,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAchievementStore } from '@/stores/achievement'
 import * as paperApi from '@/api/achievement/paper'
@@ -109,6 +109,7 @@ import DuplicateDialog from '@/components/achievement/DuplicateDialog.vue'
 
 const store = useAchievementStore()
 const router = useRouter()
+const route = useRoute()
 
 // ── State ──────────────────────────────────────────────────────────
 const activeType = ref<'paper' | 'patent' | 'copyright'>('paper')
@@ -127,7 +128,20 @@ const duplicateFieldLabel = ref('')
 const pendingSubmit = ref(false) // Whether submit should proceed after duplicate dialog
 
 // Initialize form data
-onMounted(() => {
+onMounted(async () => {
+  // CR-03: Read draftId from query params when navigating from edit action
+  const draftId = route.query.draftId
+  if (draftId) {
+    const id = Number(draftId)
+    if (id && !isNaN(id)) {
+      // Determine type from query param or try all APIs via store
+      const type = route.query.type as string | undefined
+      if (type && ['paper', 'patent', 'copyright'].includes(type)) {
+        store.switchType(type as 'paper' | 'patent' | 'copyright')
+      }
+      await store.loadDraft(id)
+    }
+  }
   if (!store.formData) {
     store.resetForm()
   }
