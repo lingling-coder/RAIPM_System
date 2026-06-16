@@ -22,6 +22,34 @@
           <template #title>首页</template>
         </el-menu-item>
 
+        <!-- Achievement Management Submenu -->
+        <el-sub-menu index="/achievement">
+          <template #title>
+            <el-icon><Document /></el-icon>
+            <span>成果管理</span>
+          </template>
+          <el-menu-item index="/achievement/register">
+            <el-icon><Edit /></el-icon>
+            <template #title>成果登记</template>
+          </el-menu-item>
+          <el-menu-item index="/achievement/list">
+            <el-icon><List /></el-icon>
+            <template #title>成果列表</template>
+          </el-menu-item>
+        </el-sub-menu>
+
+        <!-- Approval Management Submenu -->
+        <el-sub-menu index="/approval">
+          <template #title>
+            <el-icon><Check /></el-icon>
+            <span>审批管理</span>
+          </template>
+          <el-menu-item index="/approval/pending">
+            <el-icon><Clock /></el-icon>
+            <template #title>审批待办</template>
+          </el-menu-item>
+        </el-sub-menu>
+
         <!-- System Management Submenu (filtered by RBAC per D-07) -->
         <el-sub-menu v-if="hasSystemPermission" index="/system">
           <template #title>
@@ -62,6 +90,9 @@
           </el-breadcrumb>
         </div>
         <div class="header-right">
+          <!-- Notification Bell -->
+          <NotificationBell />
+
           <el-dropdown trigger="click">
             <span class="user-dropdown-trigger">
               <el-avatar :size="28" icon="UserFilled" />
@@ -97,12 +128,18 @@ import { useUserStore } from '@/store/user'
 import {
   HomeFilled,
   Setting,
+  Document,
+  Edit,
+  List,
+  Check,
+  Clock,
   Fold,
   Expand,
   UserFilled,
   User,
   SwitchButton,
 } from '@element-plus/icons-vue'
+import NotificationBell from '@/components/notification/NotificationBell.vue'
 
 interface SystemMenuItem {
   path: string

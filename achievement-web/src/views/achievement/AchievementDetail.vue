@@ -19,13 +19,32 @@
       </div>
     </div>
 
-    <!-- Action bar -->
+    <!-- Action bar (dynamic per status per D-40) -->
     <div class="action-bar" v-if="detail">
-      <el-button v-if="detail.status === 'DRAFT'" type="primary" @click="editAchievement">编辑</el-button>
+      <!-- DRAFT: Edit -->
+      <el-button v-if="detail.status === 'DRAFT'" type="primary" @click="editAchievement">
+        编辑
+      </el-button>
+
+      <!-- PENDING: Withdraw (submitter only per D-29) -->
+      <el-button
+        v-if="detail.status === 'PENDING_DEPT_REVIEW' || detail.status === 'PENDING_ADMIN_ARCHIVE'"
+        type="warning"
+        :loading="withdrawLoading"
+        @click="handleWithdraw"
+      >
+        撤回
+      </el-button>
+
+      <!-- REJECTED: Edit and resubmit -->
+      <el-button v-if="detail.status === 'REJECTED'" type="primary" @click="editAchievement">
+        编辑
+      </el-button>
     </div>
 
     <!-- Tabs -->
     <el-tabs v-model="activeTab" v-if="detail">
+      <!-- Tab: Basic Info -->
       <el-tab-pane label="基本信息" name="basic">
         <el-descriptions :column="1" border class="detail-descriptions">
           <!-- Paper fields -->
@@ -78,9 +97,18 @@
         </el-descriptions>
       </el-tab-pane>
 
+      <!-- Tab: Approval Progress -->
+      <el-tab-pane label="审批进度" name="approval">
+        <AchievementTimeline
+          :records="approvalHistory"
+          :show-pending="isPending"
+        />
+      </el-tab-pane>
+
+      <!-- Tab: Attachments -->
       <el-tab-pane label="附件" name="attachments">
         <el-empty description="暂无附件" v-if="attachments.length === 0">
-          <el-button type="primary">上传附件</el-button>
+          <el-button type="primary" @click="router.push(`/achievement/register?draftId=${detail?.id}`)">上传附件</el-button>
         </el-empty>
         <el-table v-else :data="attachments">
           <el-table-column prop="originalName" label="文件名" />
@@ -95,6 +123,16 @@
           </el-table-column>
         </el-table>
       </el-tab-pane>
+
+      <!-- Tab: Operation Log -->
+      <el-tab-pane label="操作日志" name="log">
+        <el-empty description="暂无操作日志" v-if="operationLogs.length === 0" />
+        <el-table v-else :data="operationLogs">
+          <el-table-column prop="createdTime" label="时间" width="160" />
+          <el-table-column prop="operatorName" label="操作人" width="120" />
+          <el-table-column prop="operationName" label="操作" min-width="200" />
+        </el-table>
+      </el-tab-pane>
     </el-tabs>
   </div>
 </template>
@@ -106,23 +144,31 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import * as paperApi from '@/api/achievement/paper'
 import * as patentApi from '@/api/achievement/patent'
 import * as copyrightApi from '@/api/achievement/copyright'
+import * as approvalApi from '@/api/approval'
 import * as attachmentApi from '@/api/attachment'
+import AchievementTimeline from '@/components/achievement/AchievementTimeline.vue'
 
 const route = useRoute()
 const router = useRouter()
 
 const loading = ref(false)
+const withdrawLoading = ref(false)
 const detail = ref<any>(null)
 const achievementType = ref<'paper' | 'patent' | 'copyright' | null>(null)
 const activeTab = ref('basic')
 const attachments = ref<any[]>([])
+const approvalHistory = ref<any[]>([])
+const operationLogs = ref<any[]>([])
+
+const isPending = computed(() =>
+  detail.value?.status === 'PENDING_DEPT_REVIEW' || detail.value?.status === 'PENDING_ADMIN_ARCHIVE'
+)
 
 // Determine achievement type from response data structure
 function detectType(data: any): 'paper' | 'patent' | 'copyright' {
   if (data.title !== undefined) return 'paper'
   if (data.patentName !== undefined) return 'patent'
   if (data.name !== undefined) return 'copyright'
-  // Fallback
   return 'paper'
 }
 
@@ -149,9 +195,6 @@ onMounted(async () => {
 
   loading.value = true
   try {
-    // Try each API until we find the achievement
-    // The detail pages use a single ID-based endpoint; for Phase 1 we try
-    // each type's API. Future phases may add a unified lookup endpoint.
     let data: any = null
 
     try {
@@ -176,17 +219,26 @@ onMounted(async () => {
     if (data) {
       detail.value = data
       achievementType.value = detectType(data)
+
+      // Load approval history
+      if (achievementType.value) {
+        try {
+          const histRes: any = await approvalApi.getHistory(achievementType.value, id)
+          if (histRes?.data) {
+            approvalHistory.value = histRes.data
+          }
+        } catch { /* history may not exist */ }
+      }
     }
 
     // Load attachments
     try {
-      const attRes: any = await attachmentApi.getAttachments('paper', id)
+      const attRes: any = await attachmentApi.getAttachments(
+        achievementType.value || 'paper', id)
       if (attRes?.data) {
         attachments.value = attRes.data
       }
-    } catch {
-      // Attachments may not be available
-    }
+    } catch { /* attachments may not be available */ }
   } catch {
     ElMessage.error('加载成果详情失败')
   } finally {
@@ -223,8 +275,29 @@ async function deleteAttachment(row: any) {
     await attachmentApi.deleteAttachment(row.id)
     attachments.value = attachments.value.filter((a: any) => a.id !== row.id)
     ElMessage.success('附件已删除')
-  } catch {
-    // Cancelled
+  } catch { /* cancelled */ }
+}
+
+async function handleWithdraw() {
+  if (!achievementType.value || !detail.value?.id) return
+  try {
+    await ElMessageBox.confirm(
+      '确认撤回该审批申请？撤回后成果状态恢复为草稿。',
+      '确认撤回',
+      { type: 'info', confirmButtonText: '确认撤回', cancelButtonText: '取消' }
+    )
+    withdrawLoading.value = true
+    const res: any = await approvalApi.withdraw(achievementType.value, detail.value.id)
+    if (res?.code === 200) {
+      ElMessage.info('已撤回，成果恢复为草稿')
+      detail.value.status = 'WITHDRAWN'
+      if (detail.value.statusLabel !== undefined) {
+        detail.value.statusLabel = '已撤回'
+      }
+    }
+  } catch { /* cancelled or failed */ }
+  finally {
+    withdrawLoading.value = false
   }
 }
 </script>
@@ -260,6 +333,8 @@ async function deleteAttachment(row: any) {
 
 .action-bar {
   margin-bottom: 16px;
+  display: flex;
+  gap: 8px;
 }
 
 .detail-descriptions {

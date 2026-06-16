@@ -51,6 +51,33 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
+  // ── Approval Management ────────────────────────────────────────
+  {
+    path: '/approval',
+    redirect: '/approval/pending',
+    meta: { title: '审批管理', icon: 'Check' },
+    children: [
+      {
+        path: 'pending',
+        name: 'ApprovalPending',
+        component: () => import('@/views/approval/ApprovalList.vue'),
+        meta: { title: '审批待办', icon: 'Clock' },
+      },
+      {
+        path: 'detail/:id',
+        name: 'ApprovalDetail',
+        component: () => import('@/views/approval/ApprovalDetail.vue'),
+        meta: { title: '审批详情', hidden: true },
+      },
+    ],
+  },
+  // ── Notification Center ─────────────────────────────────────
+  {
+    path: '/notification',
+    name: 'NotificationCenter',
+    component: () => import('@/views/notification/NotificationCenter.vue'),
+    meta: { title: '通知中心', hidden: true },
+  },
   // ── System Management ──────────────────────────────────────────────
   {
     path: '/system',
