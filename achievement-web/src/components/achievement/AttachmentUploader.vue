@@ -100,7 +100,9 @@ async function handleUpload(options: any) {
   const { file, onSuccess, onError } = options
   try {
     if (!props.achievementId) {
-      ElMessage.warning('请先保存草稿后再上传附件')
+      const err = new Error('请先保存草稿后再上传附件')
+      ElMessage.warning(err.message)
+      onError(err)
       return
     }
     const res: any = await attachmentApi.upload(file, props.achievementType, props.achievementId)
