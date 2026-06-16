@@ -179,6 +179,7 @@ async function fetchData() {
       size: pageSize.value,
       status: statusMap[activeTab.value],
       keyword: filters.keyword || undefined,
+      dateRange: filters.dateRange || undefined,
     })
 
     if (res?.data) {
