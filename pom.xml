@@ -23,6 +23,8 @@
         <module>achievement-common</module>
         <module>achievement-framework</module>
         <module>achievement-module/achievement-system</module>
+        <module>achievement-module/achievement-paper</module>
+        <module>achievement-module/achievement-integration</module>
         <module>achievement-web</module>
     </modules>
 
@@ -154,6 +156,16 @@
             <dependency>
                 <groupId>com.institute</groupId>
                 <artifactId>achievement-system</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.institute</groupId>
+                <artifactId>achievement-paper</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.institute</groupId>
+                <artifactId>achievement-integration</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

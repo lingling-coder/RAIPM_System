@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import AutoImport from 'unplugin-auto-import/vite'
@@ -25,6 +26,17 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
+      },
+    },
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    testTimeout: 15000,
+    css: false,
+    server: {
+      deps: {
+        inline: ['element-plus', '@element-plus/icons-vue'],
       },
     },
   },
