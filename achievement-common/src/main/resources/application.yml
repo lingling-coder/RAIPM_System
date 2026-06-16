@@ -1,0 +1,3 @@
+# achievement-common module configuration
+# This module provides shared utilities and has no specific runtime config.
+# Configurations here are inherited by the framework and system modules.
