@@ -282,7 +282,6 @@ const filters = reactive({
   keyword: '',
   dueDateFrom: null as string | null,
   dueDateTo: null as string | null,
-  ownerType: null as string | null,
 })
 
 // ── Batch selection (02-04 Task 3) ────────────────────────────────
@@ -380,7 +379,6 @@ async function fetchData() {
       keyword: filters.keyword || undefined,
       dueDateFrom: filters.dueDateFrom || undefined,
       dueDateTo: filters.dueDateTo || undefined,
-      ownerType: filters.ownerType || undefined,
     })
 
     if (res?.data) {
@@ -519,8 +517,6 @@ async function saveEdit() {
       voucherNo: editForm.value.voucherNo,
       fundingSource: editForm.value.fundingSource,
       status: editForm.value.status,
-      ownerType: '',
-      ownerId: 0,
     })
     ElMessage.success('费用记录已更新')
     editDialogVisible.value = false
