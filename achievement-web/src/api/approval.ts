@@ -71,7 +71,8 @@ export function getPending(params: {
   page: number
   size: number
   type?: string
-  dateRange?: string
+  startDate?: string
+  endDate?: string
 }) {
   return http.get('/api/approval/pending', { params })
 }

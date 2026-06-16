@@ -100,7 +100,8 @@ async function fetchData() {
       page: currentPage.value,
       size: pageSize.value,
       type: filters.type || undefined,
-      dateRange: filters.dateRange ? filters.dateRange.join(',') : undefined,
+      startDate: filters.dateRange ? filters.dateRange[0] : undefined,
+      endDate: filters.dateRange ? filters.dateRange[1] : undefined,
     })
     if (res?.data) {
       tableData.value = res.data.records || []
