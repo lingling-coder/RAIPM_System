@@ -5,6 +5,7 @@
     <el-tabs v-model="activeTab" @tab-change="handleTabChange">
       <el-tab-pane label="审批待办" name="APPROVAL" />
       <el-tab-pane label="系统通知" name="SYSTEM" />
+      <el-tab-pane label="费用预警" name="ALERT" />
     </el-tabs>
 
     <!-- Notification List -->
@@ -18,6 +19,7 @@
       >
         <el-icon :size="20" class="notification-icon" :class="typeIconClass(item.type)">
           <Bell v-if="item.type === 'APPROVAL'" />
+          <WarningFilled v-else-if="item.type === 'ALERT'" />
           <Message v-else />
         </el-icon>
         <div class="notification-content">
@@ -34,10 +36,11 @@
     <!-- Empty State -->
     <el-empty
       v-if="!loading && notifications.length === 0"
-      :description="activeTab === 'APPROVAL' ? '暂无审批待办通知' : '暂无系统通知'"
+      :description="emptyDescription"
     >
-      <el-icon :size="40" color="#909399">
+      <el-icon :size="40" :color="emptyIconColor">
         <Bell v-if="activeTab === 'APPROVAL'" />
+        <WarningFilled v-else-if="activeTab === 'ALERT'" />
         <Message v-else />
       </el-icon>
     </el-empty>
@@ -57,9 +60,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Bell, Message } from '@element-plus/icons-vue'
+import { Bell, Message, WarningFilled } from '@element-plus/icons-vue'
 import * as notificationApi from '@/api/notification'
 import { useNotificationStore } from '@/stores/notification'
 
@@ -72,6 +75,19 @@ const notifications = ref<any[]>([])
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(20)
+
+const emptyDescription = computed(() => {
+  const map: Record<string, string> = {
+    APPROVAL: '暂无审批待办通知',
+    SYSTEM: '暂无系统通知',
+    ALERT: '暂无费用预警',
+  }
+  return map[activeTab.value] || '暂无通知'
+})
+
+const emptyIconColor = computed(() => {
+  return activeTab.value === 'ALERT' ? '#e6a23c' : '#909399'
+})
 
 onMounted(() => {
   fetchNotifications()
@@ -104,7 +120,9 @@ function formatTime(timeStr: string): string {
 }
 
 function typeIconClass(type: string): string {
-  return type === 'APPROVAL' ? 'icon-approval' : 'icon-system'
+  if (type === 'APPROVAL') return 'icon-approval'
+  if (type === 'ALERT') return 'icon-alert'
+  return 'icon-system'
 }
 
 async function handleItemClick(item: any) {
@@ -114,9 +132,11 @@ async function handleItemClick(item: any) {
     item.readFlag = 1
   }
 
-  // Navigate if approval notification
+  // Navigate based on notification type
   if (item.type === 'APPROVAL' && item.relatedAchievementId) {
     router.push(`/approval/detail/${item.relatedAchievementId}?type=${item.relatedAchievementType || 'paper'}`)
+  } else if (item.type === 'ALERT' && item.relatedAchievementId) {
+    router.push(`/fee/detail/${item.relatedAchievementId}`)
   }
 }
 </script>
@@ -175,6 +195,10 @@ async function handleItemClick(item: any) {
 
 .icon-system {
   color: #67c23a;
+}
+
+.icon-alert {
+  color: #e6a23c;
 }
 
 .notification-content {

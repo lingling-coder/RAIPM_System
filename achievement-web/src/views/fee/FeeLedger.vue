@@ -105,6 +105,19 @@
           </span>
         </template>
       </el-table-column>
+      <el-table-column label="预警" width="120">
+        <template #default="scope">
+          <el-tag
+            v-if="getAlertTag(asFee(scope.row))"
+            :type="getAlertTag(asFee(scope.row)).type"
+            :effect="getAlertTag(asFee(scope.row)).effect || 'dark'"
+            size="small"
+          >
+            {{ getAlertTag(asFee(scope.row)).text }}
+          </el-tag>
+          <span v-else>—</span>
+        </template>
+      </el-table-column>
       <el-table-column label="金额" width="120" align="right">
         <template #default="scope">
           ¥{{ scope.row.amount ? scope.row.amount.toFixed(2) : '0.00' }}
@@ -441,6 +454,21 @@ async function saveEdit() {
 }
 
 // ── Display helpers ───────────────────────────────────────────────
+
+function getAlertTag(row: FeeRecordVO): { type: TagType, effect?: string, text: string } | null {
+  if (row.status !== 'pending') return null
+  if (!row.dueDate) return null
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  const due = new Date(row.dueDate)
+  due.setHours(0, 0, 0, 0)
+  const daysUntilDue = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+  if (daysUntilDue < 0) return { type: 'danger', effect: 'dark', text: `逾期 ${Math.abs(daysUntilDue)} 天` }
+  if (daysUntilDue <= 7) return { type: 'danger', effect: 'plain', text: '截止在即' }
+  if (daysUntilDue <= 15) return { type: 'warning', effect: 'dark', text: '请尽快缴费' }
+  if (daysUntilDue <= 30) return { type: 'primary', effect: 'dark', text: '即将缴费' }
+  return null
+}
 
 function feeTagType(feeType: string): TagType {
   const map: Record<string, TagType> = {
