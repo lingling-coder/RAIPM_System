@@ -68,7 +68,11 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="createdBy" label="提交人" width="120" />
+      <el-table-column label="提交人" width="120">
+        <template #default="scope">
+          {{ scope.row.submitterName || scope.row.createdBy || '—' }}
+        </template>
+      </el-table-column>
       <el-table-column prop="createdTime" label="提交时间" width="180" />
     </el-table>
 
