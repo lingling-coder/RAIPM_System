@@ -24,6 +24,8 @@
         <module>achievement-framework</module>
         <module>achievement-module/achievement-system</module>
         <module>achievement-module/achievement-paper</module>
+        <module>achievement-module/achievement-patent</module>
+        <module>achievement-module/achievement-copyright</module>
         <module>achievement-module/achievement-integration</module>
         <module>achievement-web</module>
     </modules>
@@ -161,6 +163,16 @@
             <dependency>
                 <groupId>com.institute</groupId>
                 <artifactId>achievement-paper</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.institute</groupId>
+                <artifactId>achievement-patent</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.institute</groupId>
+                <artifactId>achievement-copyright</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

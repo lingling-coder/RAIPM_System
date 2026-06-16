@@ -19,6 +19,8 @@
     <modules>
         <module>achievement-system</module>
         <module>achievement-paper</module>
+        <module>achievement-patent</module>
+        <module>achievement-copyright</module>
         <module>achievement-integration</module>
     </modules>
 </project>

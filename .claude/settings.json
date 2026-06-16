@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(gsd-ui-phase)",
+      "Skill(gsd-ui-phase:*)",
+      "Bash(mkdir -p /d/科研成果与知识产权管理系统/.mvn/wrapper)"
+    ],
+    "additionalDirectories": [
+      "D:\\科研成果与知识产权管理系统\\.mvn"
+    ]
+  }
+}
