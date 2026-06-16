@@ -14,6 +14,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -211,7 +212,7 @@ public class NotificationService {
     public List<Long> findUserIdsByDeptAndRole(Long deptId, String roleCode) {
         if (deptId == null) {
             log.warn("findUserIdsByDeptAndRole called with null deptId");
-            return List.of();
+            return new ArrayList<>();
         }
         List<Long> userIds = sysUserMapper.findUserIdsByDeptAndRole(deptId, roleCode);
         if (userIds.isEmpty()) {
