@@ -78,6 +78,13 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/notification/NotificationCenter.vue'),
     meta: { title: '通知中心', hidden: true },
   },
+  // ── Batch Import ──────────────────────────────────────────
+  {
+    path: '/batch-import',
+    name: 'BatchImport',
+    component: () => import('@/views/batch/BatchImport.vue'),
+    meta: { title: '批量导入', icon: 'Upload' },
+  },
   // ── System Management ──────────────────────────────────────────────
   {
     path: '/system',

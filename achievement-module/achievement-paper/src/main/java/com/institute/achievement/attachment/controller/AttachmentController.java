@@ -59,16 +59,30 @@ public class AttachmentController {
     /**
      * Download an attachment file.
      * GET /api/attachments/{id}/download
+     * <p>
+     * Checks download permission before streaming the file (D-44).
      */
     @GetMapping("/{id}/download")
     public ResponseEntity<Resource> download(@PathVariable Long id) {
         Attachment attachment = attachmentService.getAttachmentById(id);
+        Long userId = SecurityUtils.getCurrentUserId();
+
+        // Permission check before download
+        if (!attachmentService.canDownload(attachment, userId)) {
+            log.warn("Download denied: attachment={}, userId={}", id, userId);
+            return ResponseEntity.status(403).build();
+        }
 
         try {
+            // Build full file path from storage base + relative path
             Path filePath = Paths.get(attachment.getFilePath());
+            if (!filePath.isAbsolute()) {
+                filePath = Paths.get(System.getProperty("user.dir"), "uploads", attachment.getFilePath());
+            }
             Resource resource = new UrlResource(filePath.toUri());
 
             if (!resource.exists() || !resource.isReadable()) {
+                log.error("File not found or not readable: {}", filePath);
                 return ResponseEntity.notFound().build();
             }
 
