@@ -3,9 +3,10 @@
     <!-- Left Sidebar -->
     <div class="layout-sidebar" :class="{ collapsed: appStore.sidebarCollapsed }">
       <div class="sidebar-logo">
-        <span class="logo-text" v-if="!appStore.sidebarCollapsed">Achievement</span>
+        <span class="logo-text" v-if="!appStore.sidebarCollapsed">科研成果管理系统</span>
         <span class="logo-icon" v-else>A</span>
       </div>
+
       <el-menu
         :default-active="activeMenu"
         :collapse="appStore.sidebarCollapsed"
@@ -15,25 +16,35 @@
         active-text-color="#409eff"
         router
       >
+        <!-- Dashboard -->
         <el-menu-item index="/dashboard">
           <el-icon><HomeFilled /></el-icon>
           <template #title>首页</template>
         </el-menu-item>
 
-        <!-- System Management Submenu -->
-        <el-sub-menu index="/system">
+        <!-- System Management Submenu (filtered by RBAC per D-07) -->
+        <el-sub-menu v-if="hasSystemPermission" index="/system">
           <template #title>
             <el-icon><Setting /></el-icon>
             <span>系统管理</span>
           </template>
-          <el-menu-item index="/system/user">用户管理</el-menu-item>
-          <el-menu-item index="/system/role">角色管理</el-menu-item>
-          <el-menu-item index="/system/department">部门管理</el-menu-item>
-          <el-menu-item index="/system/dict">数据字典</el-menu-item>
-          <el-menu-item index="/system/audit-log">审计日志</el-menu-item>
-          <el-menu-item index="/system/api-config">API集成配置</el-menu-item>
+          <el-menu-item
+            v-for="item in systemMenuItems"
+            :key="item.path"
+            :index="item.path"
+          >
+            {{ item.title }}
+          </el-menu-item>
         </el-sub-menu>
       </el-menu>
+
+      <!-- Collapse toggle at sidebar bottom -->
+      <div class="sidebar-collapse-btn" @click="appStore.toggleSidebar">
+        <el-icon>
+          <Fold v-if="!appStore.sidebarCollapsed" />
+          <Expand v-else />
+        </el-icon>
+      </div>
     </div>
 
     <!-- Right Content Area -->
@@ -41,7 +52,7 @@
       <!-- Top Navbar -->
       <header class="layout-header">
         <div class="header-left">
-          <el-icon class="collapse-btn" @click="appStore.toggleSidebar">
+          <el-icon class="collapse-trigger" @click="appStore.toggleSidebar">
             <Fold v-if="!appStore.sidebarCollapsed" />
             <Expand v-else />
           </el-icon>
@@ -52,17 +63,17 @@
         </div>
         <div class="header-right">
           <el-dropdown trigger="click">
-            <span class="user-dropdown">
+            <span class="user-dropdown-trigger">
               <el-avatar :size="28" icon="UserFilled" />
-              <span class="username">{{ userStore.userInfo.realName || 'User' }}</span>
+              <span class="username">{{ displayName }}</span>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item @click="goToProfile">
-                  <el-icon><User /></el-icon>Personal Center
+                  <el-icon><User /></el-icon>个人中心
                 </el-dropdown-item>
                 <el-dropdown-item divided @click="handleLogout">
-                  <el-icon><SwitchButton /></el-icon>Logout
+                  <el-icon><SwitchButton /></el-icon>退出登录
                 </el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -70,7 +81,7 @@
         </div>
       </header>
 
-      <!-- Main Content -->
+      <!-- Main Content Area -->
       <main class="layout-content">
         <router-view />
       </main>
@@ -93,24 +104,65 @@ import {
   SwitchButton,
 } from '@element-plus/icons-vue'
 
+interface SystemMenuItem {
+  path: string
+  title: string
+  permission: string
+}
+
+/**
+ * System management menu items per D-36 with their required permissions.
+ */
+const systemMenuItemsFull: SystemMenuItem[] = [
+  { path: '/system/user', title: '用户管理', permission: 'system:user:list' },
+  { path: '/system/role', title: '角色管理', permission: 'system:role:list' },
+  { path: '/system/department', title: '部门管理', permission: 'system:dept:list' },
+  { path: '/system/dict', title: '数据字典', permission: 'system:dict:list' },
+  { path: '/system/audit-log', title: '审计日志', permission: 'system:audit:list' },
+  { path: '/system/api-config', title: 'API集成配置', permission: 'system:api:list' },
+]
+
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
 const userStore = useUserStore()
 
+// Active menu matches current route
 const activeMenu = computed(() => route.path)
 
+// Current breadcrumb title
 const currentTitle = computed(() => {
-  return route.meta?.title as string || ''
+  return (route.meta?.title as string) || ''
 })
 
+// Display name for the user dropdown
+const displayName = computed(() => {
+  return userStore.userInfo?.realName || userStore.userInfo?.username || '用户'
+})
+
+// Check if user has any system management permission
+const hasSystemPermission = computed(() => {
+  return systemMenuItemsFull.some(item => userStore.hasPermission(item.permission))
+})
+
+// Filtered system menu items based on user permissions (RBAC D-07)
+const systemMenuItems = computed(() => {
+  return systemMenuItemsFull.filter(item => userStore.hasPermission(item.permission))
+})
+
+// Navigation functions
 function goToProfile() {
   router.push('/profile')
 }
 
-function handleLogout() {
-  userStore.resetState()
-  router.push('/login')
+async function handleLogout() {
+  try {
+    await userStore.logout()
+  } catch {
+    // Ensure navigation even if API fails
+    userStore.resetState()
+    router.push('/login')
+  }
 }
 </script>
 
@@ -121,6 +173,7 @@ function handleLogout() {
   overflow: hidden;
 }
 
+// ── Sidebar ───────────────────────────────────────────────────────────
 .layout-sidebar {
   width: 220px;
   background-color: #1d1e1f;
@@ -128,6 +181,8 @@ function handleLogout() {
   overflow-y: auto;
   overflow-x: hidden;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
 
   &.collapsed {
     width: 64px;
@@ -142,21 +197,47 @@ function handleLogout() {
     font-size: 18px;
     font-weight: bold;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
 
     .logo-icon {
       font-size: 22px;
     }
   }
+
+  .el-menu {
+    border-right: none;
+    flex: 1;
+  }
+
+  .sidebar-collapse-btn {
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #bfcbd9;
+    cursor: pointer;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
+
+    &:hover {
+      color: #409eff;
+    }
+  }
 }
 
+// ── Main Content ──────────────────────────────────────────────────────
 .layout-main {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: margin-left 0.3s;
+
+  &.collapsed {
+    margin-left: 0;
+  }
 }
 
+// ── Header ────────────────────────────────────────────────────────────
 .layout-header {
   height: 48px;
   background: #fff;
@@ -172,7 +253,7 @@ function handleLogout() {
     align-items: center;
     gap: 12px;
 
-    .collapse-btn {
+    .collapse-trigger {
       font-size: 18px;
       cursor: pointer;
       color: #606266;
@@ -184,7 +265,7 @@ function handleLogout() {
   }
 
   .header-right {
-    .user-dropdown {
+    .user-dropdown-trigger {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -198,6 +279,7 @@ function handleLogout() {
   }
 }
 
+// ── Content ───────────────────────────────────────────────────────────
 .layout-content {
   flex: 1;
   padding: 16px;

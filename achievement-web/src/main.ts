@@ -5,6 +5,7 @@ import 'element-plus/dist/index.css'
 import 'nprogress/nprogress.css'
 import App from './App.vue'
 import router from './router'
+import './router/permission'
 import './style/index.scss'
 
 const app = createApp(App)
