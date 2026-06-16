@@ -61,6 +61,7 @@ public class AlertRecordVO {
         if (escalationLevel == null) return null;
         switch (escalationLevel) {
             case "NONE": return "无";
+            case "FIRST_ALERT": return "首次预警";
             case "DEPT_HEAD": return "部门负责人";
             case "LEADERSHIP": return "院领导";
             default: return escalationLevel;
