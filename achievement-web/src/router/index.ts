@@ -71,6 +71,38 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
+  // ── Fee Management (D-02) ────────────────────────────────────
+  {
+    path: '/fee',
+    redirect: '/fee/ledger',
+    meta: { title: '费用管理', icon: 'Money' },
+    children: [
+      {
+        path: 'ledger',
+        name: 'FeeLedger',
+        component: () => import('@/views/fee/FeeLedger.vue'),
+        meta: { title: '费用台账' },
+      },
+      {
+        path: 'plan',
+        name: 'FeePlan',
+        component: () => import('@/views/fee/FeePlan.vue'),
+        meta: { title: '缴费计划' },
+      },
+      {
+        path: 'stats',
+        name: 'FeeStats',
+        component: () => import('@/views/fee/FeeStats.vue'),
+        meta: { title: '费用统计' },
+      },
+      {
+        path: 'detail/:id',
+        name: 'FeeDetail',
+        component: () => import('@/views/fee/FeeDetail.vue'),
+        meta: { title: '费用详情', hidden: true },
+      },
+    ],
+  },
   // ── Notification Center ─────────────────────────────────────
   {
     path: '/notification',
