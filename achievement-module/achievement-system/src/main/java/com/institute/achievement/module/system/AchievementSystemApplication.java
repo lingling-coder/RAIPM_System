@@ -2,6 +2,7 @@ package com.institute.achievement.module.system;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Application entry point for the Achievement Management System.
@@ -10,6 +11,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * enabling auto-configuration for the entire multi-module project.
  */
 @SpringBootApplication(scanBasePackages = "com.institute.achievement")
+@EnableScheduling
 public class AchievementSystemApplication {
 
     public static void main(String[] args) {

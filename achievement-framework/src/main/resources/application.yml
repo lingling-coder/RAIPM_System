@@ -17,6 +17,34 @@ server:
       enabled: true
       force: true
 
+# ── File Storage Configuration (D-29, D-30, D-31) ──────────────────────────
+file:
+  storage:
+    upload-dir: ./uploads
+    max-file-size: 52428800  # 50MB
+    allowed-types: pdf,doc,docx,xls,xlsx,png,jpg,jpeg,gif,zip,rar
+
+# ── Backup Configuration (D-32, D-33) ──────────────────────────────────────
+backup:
+  enabled: true
+  backup-dir: ./backups
+  database:
+    host: localhost
+    port: 3306
+    username: root
+    password: root123
+    name: achievement_db
+  retention-days: 30
+  cron: 0 0 2 * * ?  # 2 AM daily
+  file-backup-paths: ./uploads
+
+# ── Task Scheduling ────────────────────────────────────────────────────────
+spring:
+  task:
+    scheduling:
+      pool:
+        size: 2
+
 # ── JWT Configuration ──────────────────────────────────────────────────────
 jwt:
   secret: AchievementJWTSecretKeyForHMACSHA256LengthRequirement2024
