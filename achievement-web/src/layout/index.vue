@@ -115,6 +115,7 @@
       <!-- Main Content Area -->
       <main class="layout-content">
         <router-view />
+        <ReminderUrgencyPopUp />
       </main>
     </div>
   </div>
@@ -140,6 +141,7 @@ import {
   SwitchButton,
 } from '@element-plus/icons-vue'
 import NotificationBell from '@/components/notification/NotificationBell.vue'
+import ReminderUrgencyPopUp from '@/components/reminder/ReminderUrgencyPopUp.vue'
 
 interface SystemMenuItem {
   path: string
