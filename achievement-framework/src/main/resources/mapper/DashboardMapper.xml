@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.institute.achievement.framework.dashboard.mapper.DashboardMapper">
+
+    <!--
+        Dashboard statistics aggregation queries for Plan 03-01.
+        All queries use MySQL UNION ALL across paper, patent, and software_copyright tables
+        with GROUP BY aggregation. The outer query is aliased as "t" for @DataScope
+        dept_id injection (T-3-01-02 mitigation).
+    -->
+
+    <!-- ── Shared WHERE clause fragment for optional dept filter ─────
+
+         Reused by all inner subqueries in UNION ALL blocks.
+         Each table has its own alias for the department filter.
+    -->
+    <sql id="deptWhereClause">
+        <if test="deptId != null">
+            AND dept_id = #{deptId}
+        </if>
+    </sql>
+
+    <!-- ── Annual Trend ─────────────────────────────────────────────
+
+         Returns achievement counts grouped by year and type across all
+         3 achievement tables. Excludes DRAFT and INVALIDATED records.
+    -->
+    <select id="getAnnualTrend" resultType="com.institute.achievement.framework.dashboard.dto.DashboardTrendVO">
+        SELECT t.year AS year, t.achievementType AS achievementType, SUM(t.cnt) AS count
+        FROM (
+            SELECT
+                CAST(p.publish_year AS SIGNED) AS year,
+                'paper' AS achievementType,
+                COUNT(*) AS cnt,
+                p.dept_id
+            FROM paper p
+            WHERE p.status NOT IN ('DRAFT', 'INVALIDATED')
+            <include refid="deptWhereClause"/>
+            GROUP BY CAST(p.publish_year AS SIGNED), p.dept_id
+
+            UNION ALL
+
+            SELECT
+                YEAR(pat.application_date) AS year,
+                'patent' AS achievementType,
+                COUNT(*) AS cnt,
+                pat.dept_id
+            FROM patent pat
+            WHERE pat.status NOT IN ('DRAFT', 'INVALIDATED')
+            <include refid="deptWhereClause"/>
+            GROUP BY YEAR(pat.application_date), pat.dept_id
+
+            UNION ALL
+
+            SELECT
+                YEAR(sc.registration_date) AS year,
+                'software' AS achievementType,
+                COUNT(*) AS cnt,
+                sc.dept_id
+            FROM software_copyright sc
+            WHERE sc.status NOT IN ('DRAFT', 'INVALIDATED')
+            <include refid="deptWhereClause"/>
+            GROUP BY YEAR(sc.registration_date), sc.dept_id
+        ) t
+        <where>
+            <if test="yearFrom != null">
+                AND t.year &gt;= #{yearFrom}
+            </if>
+            <if test="yearTo != null">
+                AND t.year &lt;= #{yearTo}
+            </if>
+        </where>
+        GROUP BY t.year, t.achievementType
+        ORDER BY t.year ASC
+    </select>
+
+    <!-- ── Type Distribution ────────────────────────────────────────
+
+         Returns total achievement counts by type across all 3 tables
+         with percentage of total (computed in service layer).
+    -->
+    <select id="getTypeDist" resultType="com.institute.achievement.framework.dashboard.dto.DashboardTypeDistVO">
+        SELECT t.achievementType AS achievementType, SUM(t.cnt) AS count
+        FROM (
+            SELECT 'paper' AS achievementType, COUNT(*) AS cnt, p.dept_id
+            FROM paper p
+            WHERE p.status NOT IN ('DRAFT', 'INVALIDATED')
+            <include refid="deptWhereClause"/>
+            GROUP BY p.dept_id
+
+            UNION ALL
+
+            SELECT 'patent' AS achievementType, COUNT(*) AS cnt, pat.dept_id
+            FROM patent pat
+            WHERE pat.status NOT IN ('DRAFT', 'INVALIDATED')
+            <include refid="deptWhereClause"/>
+            GROUP BY pat.dept_id
+
+            UNION ALL
+
+            SELECT 'software' AS achievementType, COUNT(*) AS cnt, sc.dept_id
+            FROM software_copyright sc
+            WHERE sc.status NOT IN ('DRAFT', 'INVALIDATED')
+            <include refid="deptWhereClause"/>
+            GROUP BY sc.dept_id
+        ) t
+        GROUP BY t.achievementType
+        ORDER BY count DESC
+    </select>
+
+    <!-- ── Department Ranking ──────────────────────────────────────
+
+         Returns achievement counts by department across all types.
+         JOINs sys_department for department name display.
+    -->
+    <select id="getDeptRanking" resultType="com.institute.achievement.framework.dashboard.dto.DashboardDeptRankVO">
+        SELECT
+            sd.dept_name AS deptName,
+            t.dept_id AS deptId,
+            COALESCE(SUM(t.paperCount), 0) AS paperCount,
+            COALESCE(SUM(t.patentCount), 0) AS patentCount,
+            COALESCE(SUM(t.softwareCount), 0) AS softwareCount,
+            COALESCE(SUM(t.paperCount + t.patentCount + t.softwareCount), 0) AS totalCount
+        FROM (
+            SELECT p.dept_id, COUNT(*) AS paperCount, 0 AS patentCount, 0 AS softwareCount
+            FROM paper p
+            WHERE p.status NOT IN ('DRAFT', 'INVALIDATED')
+            <include refid="deptWhereClause"/>
+            GROUP BY p.dept_id
+
+            UNION ALL
+
+            SELECT pat.dept_id, 0 AS paperCount, COUNT(*) AS patentCount, 0 AS softwareCount
+            FROM patent pat
+            WHERE pat.status NOT IN ('DRAFT', 'INVALIDATED')
+            <include refid="deptWhereClause"/>
+            GROUP BY pat.dept_id
+
+            UNION ALL
+
+            SELECT sc.dept_id, 0 AS paperCount, 0 AS patentCount, COUNT(*) AS softwareCount
+            FROM software_copyright sc
+            WHERE sc.status NOT IN ('DRAFT', 'INVALIDATED')
+            <include refid="deptWhereClause"/>
+            GROUP BY sc.dept_id
+        ) t
+        LEFT JOIN sys_department sd ON t.dept_id = sd.id
+        GROUP BY t.dept_id, sd.dept_name
+        ORDER BY totalCount DESC
+    </select>
+
+    <!-- ── Patent Status Distribution ──────────────────────────────
+
+         Returns patent counts grouped by derived legal status category:
+         VALID (授权), INVALID (终止/无效/驳回), UNKNOWN (all other statuses).
+    -->
+    <select id="getPatentStatus" resultType="com.institute.achievement.framework.dashboard.dto.DashboardPatentStatusVO">
+        SELECT
+            CASE
+                WHEN pat.legal_status = '授权' THEN 'VALID'
+                WHEN pat.legal_status IN ('终止', '无效', '驳回') THEN 'INVALID'
+                ELSE 'UNKNOWN'
+            END AS status,
+            CASE
+                WHEN pat.legal_status = '授权' THEN '有效'
+                WHEN pat.legal_status IN ('终止', '无效', '驳回') THEN '无效'
+                ELSE '未知'
+            END AS label,
+            COUNT(*) AS count
+        FROM patent pat
+        WHERE pat.status NOT IN ('DRAFT')
+        <include refid="deptWhereClause"/>
+        GROUP BY
+            CASE
+                WHEN pat.legal_status = '授权' THEN 'VALID'
+                WHEN pat.legal_status IN ('终止', '无效', '驳回') THEN 'INVALID'
+                ELSE 'UNKNOWN'
+            END,
+            CASE
+                WHEN pat.legal_status = '授权' THEN '有效'
+                WHEN pat.legal_status IN ('终止', '无效', '驳回') THEN '无效'
+                ELSE '未知'
+            END
+        ORDER BY count DESC
+    </select>
+
+    <!-- ── Chart Data Export ───────────────────────────────────────
+
+         Returns raw data rows for a given chart type. Uses <choose>
+         block to select the appropriate detail query based on chartType
+         parameter (dimension whitelist pattern from FeeStats, T-3-01-01).
+    -->
+    <select id="exportChartData" resultType="com.institute.achievement.framework.dashboard.dto.DashboardExportVO">
+        <choose>
+            <when test="chartType == 'annualTrend'">
+                SELECT
+                    CAST(t.year AS CHAR) AS year,
+                    t.achievementType AS achievementType,
+                    SUM(t.cnt) AS count,
+                    '' AS deptName,
+                    '' AS status,
+                    '' AS percentage
+                FROM (
+                    SELECT
+                        CAST(p.publish_year AS SIGNED) AS year,
+                        'paper' AS achievementType,
+                        COUNT(*) AS cnt,
+                        p.dept_id
+                    FROM paper p
+                    WHERE p.status NOT IN ('DRAFT', 'INVALIDATED')
+                    <include refid="deptWhereClause"/>
+                    GROUP BY CAST(p.publish_year AS SIGNED), p.dept_id
+
+                    UNION ALL
+
+                    SELECT
+                        YEAR(pat.application_date) AS year,
+                        'patent' AS achievementType,
+                        COUNT(*) AS cnt,
+                        pat.dept_id
+                    FROM patent pat
+                    WHERE pat.status NOT IN ('DRAFT', 'INVALIDATED')
+                    <include refid="deptWhereClause"/>
+                    GROUP BY YEAR(pat.application_date), pat.dept_id
+
+                    UNION ALL
+
+                    SELECT
+                        YEAR(sc.registration_date) AS year,
+                        'software' AS achievementType,
+                        COUNT(*) AS cnt,
+                        sc.dept_id
+                    FROM software_copyright sc
+                    WHERE sc.status NOT IN ('DRAFT', 'INVALIDATED')
+                    <include refid="deptWhereClause"/>
+                    GROUP BY YEAR(sc.registration_date), sc.dept_id
+                ) t
+                GROUP BY t.year, t.achievementType
+                ORDER BY t.year ASC
+            </when>
+
+            <when test="chartType == 'typeDist'">
+                SELECT
+                    '' AS year,
+                    t.achievementType AS achievementType,
+                    SUM(t.cnt) AS count,
+                    '' AS deptName,
+                    '' AS status,
+                    '' AS percentage
+                FROM (
+                    SELECT 'paper' AS achievementType, COUNT(*) AS cnt, p.dept_id
+                    FROM paper p
+                    WHERE p.status NOT IN ('DRAFT', 'INVALIDATED')
+                    <include refid="deptWhereClause"/>
+                    GROUP BY p.dept_id
+
+                    UNION ALL
+
+                    SELECT 'patent' AS achievementType, COUNT(*) AS cnt, pat.dept_id
+                    FROM patent pat
+                    WHERE pat.status NOT IN ('DRAFT', 'INVALIDATED')
+                    <include refid="deptWhereClause"/>
+                    GROUP BY pat.dept_id
+
+                    UNION ALL
+
+                    SELECT 'software' AS achievementType, COUNT(*) AS cnt, sc.dept_id
+                    FROM software_copyright sc
+                    WHERE sc.status NOT IN ('DRAFT', 'INVALIDATED')
+                    <include refid="deptWhereClause"/>
+                    GROUP BY sc.dept_id
+                ) t
+                GROUP BY t.achievementType
+                ORDER BY count DESC
+            </when>
+
+            <when test="chartType == 'deptRanking'">
+                SELECT
+                    '' AS year,
+                    '' AS achievementType,
+                    COALESCE(SUM(t.paperCount + t.patentCount + t.softwareCount), 0) AS count,
+                    sd.dept_name AS deptName,
+                    '' AS status,
+                    '' AS percentage
+                FROM (
+                    SELECT p.dept_id, COUNT(*) AS paperCount, 0 AS patentCount, 0 AS softwareCount
+                    FROM paper p
+                    WHERE p.status NOT IN ('DRAFT', 'INVALIDATED')
+                    <include refid="deptWhereClause"/>
+                    GROUP BY p.dept_id
+
+                    UNION ALL
+
+                    SELECT pat.dept_id, 0 AS paperCount, COUNT(*) AS patentCount, 0 AS softwareCount
+                    FROM patent pat
+                    WHERE pat.status NOT IN ('DRAFT', 'INVALIDATED')
+                    <include refid="deptWhereClause"/>
+                    GROUP BY pat.dept_id
+
+                    UNION ALL
+
+                    SELECT sc.dept_id, 0 AS paperCount, 0 AS patentCount, COUNT(*) AS softwareCount
+                    FROM software_copyright sc
+                    WHERE sc.status NOT IN ('DRAFT', 'INVALIDATED')
+                    <include refid="deptWhereClause"/>
+                    GROUP BY sc.dept_id
+                ) t
+                LEFT JOIN sys_department sd ON t.dept_id = sd.id
+                GROUP BY t.dept_id, sd.dept_name
+                ORDER BY count DESC
+            </when>
+
+            <when test="chartType == 'patentStatus'">
+                SELECT
+                    '' AS year,
+                    '' AS achievementType,
+                    COUNT(*) AS count,
+                    '' AS deptName,
+                    CASE
+                        WHEN pat.legal_status = '授权' THEN 'VALID'
+                        WHEN pat.legal_status IN ('终止', '无效', '驳回') THEN 'INVALID'
+                        ELSE 'UNKNOWN'
+                    END AS status,
+                    '' AS percentage
+                FROM patent pat
+                WHERE pat.status NOT IN ('DRAFT')
+                <include refid="deptWhereClause"/>
+                GROUP BY status
+                ORDER BY count DESC
+            </when>
+
+            <otherwise>
+                SELECT NULL AS year, NULL AS achievementType, NULL AS count,
+                       NULL AS deptName, NULL AS status, NULL AS percentage
+                WHERE 1 = 0
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

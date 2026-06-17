@@ -49,6 +49,7 @@
         <hutool.version>5.8.30</hutool.version>
         <mysql-connector.version>8.4.0</mysql-connector.version>
         <flyway.version>10.10.0</flyway.version>
+        <itext.version>8.0.5</itext.version>
     </properties>
 
     <dependencyManagement>
