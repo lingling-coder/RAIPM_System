@@ -165,6 +165,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/system/reminder-config/index.vue'),
         meta: { title: '提醒配置', icon: 'Bell', permission: 'system:reminder:list' },
       },
+      {
+        path: 'email-config',
+        name: 'SystemEmailConfig',
+        component: () => import('@/views/system/email-config/index.vue'),
+        meta: { title: '邮件服务配置', icon: 'Message', permission: 'system:email:list' },
+      },
     ],
   },
 ]
