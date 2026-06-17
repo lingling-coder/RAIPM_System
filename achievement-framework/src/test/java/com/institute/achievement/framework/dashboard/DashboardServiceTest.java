@@ -17,7 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.ByteArrayOutputStream;
+import jakarta.servlet.ServletOutputStream;
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Collections;
@@ -268,7 +268,8 @@ class DashboardServiceTest {
                 new DashboardExportVO("2023", "paper", 8L, "", "", "")
         );
         when(dashboardMapper.exportChartData("annualTrend", null)).thenReturn(exportData);
-        when(response.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+        ServletOutputStream outputStream = mock(ServletOutputStream.class);
+        when(response.getOutputStream()).thenReturn(outputStream);
 
         dashboardService.exportExcel(response, "annualTrend", null);
 
@@ -305,7 +306,8 @@ class DashboardServiceTest {
     @DisplayName("exportExcel should work with deptId filter")
     void exportExcel_WithDeptId_PassesFilterToMapper(@Mock HttpServletResponse response) throws Exception {
         when(dashboardMapper.exportChartData("annualTrend", 100L)).thenReturn(Collections.emptyList());
-        when(response.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+        ServletOutputStream outputStream = mock(ServletOutputStream.class);
+        when(response.getOutputStream()).thenReturn(outputStream);
 
         dashboardService.exportExcel(response, "annualTrend", 100L);
 
