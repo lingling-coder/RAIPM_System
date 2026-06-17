@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.institute.achievement.framework.search.mapper.SearchMapper">
+
+    <!--
+        SearchMapper: UNION ALL + FULLTEXT search across paper, patent, and
+        software_copyright tables using MySQL ngram FULLTEXT indexes.
+
+        IMPORTANT: Department-level filtering is inlined in each UNION branch
+        explicitly (Pitfall 1 from RESEARCH.md — DataPermissionInterceptor
+        cannot handle UNION ALL queries).
+
+        Threat model mappings:
+          T-3-03-01: keyword sanitized via SearchQuerySanitizer.toBooleanModeQuery()
+          T-3-03-02: inline dept_id in each UNION branch
+          T-3-03-03: D-16 classified exclusion via forceExcludeClassified flag
+    -->
+
+    <!-- ── Main Search Query ──────────────────────────────────────────────
+
+         UNION ALL across 3 achievement tables with:
+         - MATCH...AGAINST IN BOOLEAN MODE for relevance scoring
+         - Explicit dept_id filter in each branch (Pitfall 1)
+         - D-16 classified exclusion logic in outer WHERE
+         - Dynamic filters for type, year range, classification
+         - Sorted by relevance DESC with pagination
+    -->
+    <select id="search"
+            resultType="com.institute.achievement.framework.search.dto.SearchResultVO">
+        <!-- Sanitize keyword via static utility before SQL execution -->
+        <bind name="sanitizedKeyword"
+              value="@com.institute.achievement.framework.search.util.SearchQuerySanitizer@toBooleanModeQuery(keyword)"/>
+
+        SELECT id, title, achievementType, dept_id AS deptId, is_classified AS isClassified,
+               status, score, authors, publish_year AS publishYear, dept_name AS deptName
+        FROM (
+
+            -- Paper branch
+            SELECT p.id,
+                   p.title AS title,
+                   'paper' AS achievementType,
+                   p.dept_id,
+                   p.is_classified,
+                   p.status,
+                   MATCH(p.title, p.authors, p.abstract_text)
+                       AGAINST (#{sanitizedKeyword} IN BOOLEAN MODE) AS score,
+                   p.authors,
+                   p.publish_year,
+                   d.dept_name
+            FROM paper p
+            LEFT JOIN sys_department d ON p.dept_id = d.id
+            WHERE MATCH(p.title, p.authors, p.abstract_text)
+                      AGAINST (#{sanitizedKeyword} IN BOOLEAN MODE)
+              AND p.status != 'DRAFT'
+              AND p.status != 'INVALIDATED'
+              AND p.dept_id = #{deptId}
+
+            UNION ALL
+
+            -- Patent branch
+            SELECT pat.id,
+                   pat.patent_name AS title,
+                   'patent' AS achievementType,
+                   pat.dept_id,
+                   pat.is_classified,
+                   pat.status,
+                   MATCH(pat.patent_name, pat.inventors)
+                       AGAINST (#{sanitizedKeyword} IN BOOLEAN MODE) AS score,
+                   pat.inventors AS authors,
+                   YEAR(pat.application_date) AS publish_year,
+                   d.dept_name
+            FROM patent pat
+            LEFT JOIN sys_department d ON pat.dept_id = d.id
+            WHERE MATCH(pat.patent_name, pat.inventors)
+                      AGAINST (#{sanitizedKeyword} IN BOOLEAN MODE)
+              AND pat.status != 'DRAFT'
+              AND pat.status != 'INVALIDATED'
+              AND pat.dept_id = #{deptId}
+
+            UNION ALL
+
+            -- Software Copyright branch
+            SELECT sc.id,
+                   sc.name AS title,
+                   'software' AS achievementType,
+                   sc.dept_id,
+                   sc.is_classified,
+                   sc.status,
+                   MATCH(sc.name, sc.copyright_holder)
+                       AGAINST (#{sanitizedKeyword} IN BOOLEAN MODE) AS score,
+                   sc.copyright_holder AS authors,
+                   YEAR(sc.registration_date) AS publish_year,
+                   d.dept_name
+            FROM software_copyright sc
+            LEFT JOIN sys_department d ON sc.dept_id = d.id
+            WHERE MATCH(sc.name, sc.copyright_holder)
+                      AGAINST (#{sanitizedKeyword} IN BOOLEAN MODE)
+              AND sc.status != 'DRAFT'
+              AND sc.status != 'INVALIDATED'
+              AND sc.dept_id = #{deptId}
+
+        ) AS results
+
+        <where>
+            <!-- D-16 classified exclusion: for non-CLASSIFIED_MANAGER users,
+                 forceExcludeClassified is set to true by the service layer -->
+            <if test="forceExcludeClassified">
+                AND results.is_classified = 0
+            </if>
+            <!-- User-facing classification filter (only applied when
+                 forceExcludeClassified is false) -->
+            <if test="!forceExcludeClassified and classification != null and classification != ''">
+                <choose>
+                    <when test="classification == 'NORMAL'">AND results.is_classified = 0</when>
+                    <when test="classification == 'CLASSIFIED'">AND results.is_classified = 1</when>
+                </choose>
+            </if>
+            <!-- Optional achievement type filter -->
+            <if test="type != null and type != ''">
+                AND results.achievementType = #{type}
+            </if>
+            <!-- Optional year range filters -->
+            <if test="yearFrom != null">
+                AND results.publish_year >= #{yearFrom}
+            </if>
+            <if test="yearTo != null">
+                AND results.publish_year &lt;= #{yearTo}
+            </if>
+        </where>
+
+        ORDER BY score DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <!-- ── Count Query ────────────────────────────────────────────────────
+
+         Same UNION ALL structure wrapped in SELECT COUNT(*) for pagination
+         total. No ORDER BY, LIMIT, or OFFSET.
+    -->
+    <select id="countSearch" resultType="long">
+        <!-- Sanitize keyword via static utility before SQL execution -->
+        <bind name="sanitizedKeyword"
+              value="@com.institute.achievement.framework.search.util.SearchQuerySanitizer@toBooleanModeQuery(keyword)"/>
+
+        SELECT COUNT(*)
+        FROM (
+
+            -- Paper branch
+            SELECT p.id,
+                   p.is_classified,
+                   'paper' AS achievementType,
+                   p.publish_year
+            FROM paper p
+            WHERE MATCH(p.title, p.authors, p.abstract_text)
+                      AGAINST (#{sanitizedKeyword} IN BOOLEAN MODE)
+              AND p.status != 'DRAFT'
+              AND p.status != 'INVALIDATED'
+              AND p.dept_id = #{deptId}
+
+            UNION ALL
+
+            -- Patent branch
+            SELECT pat.id,
+                   pat.is_classified,
+                   'patent' AS achievementType,
+                   YEAR(pat.application_date) AS publish_year
+            FROM patent pat
+            WHERE MATCH(pat.patent_name, pat.inventors)
+                      AGAINST (#{sanitizedKeyword} IN BOOLEAN MODE)
+              AND pat.status != 'DRAFT'
+              AND pat.status != 'INVALIDATED'
+              AND pat.dept_id = #{deptId}
+
+            UNION ALL
+
+            -- Software Copyright branch
+            SELECT sc.id,
+                   sc.is_classified,
+                   'software' AS achievementType,
+                   YEAR(sc.registration_date) AS publish_year
+            FROM software_copyright sc
+            WHERE MATCH(sc.name, sc.copyright_holder)
+                      AGAINST (#{sanitizedKeyword} IN BOOLEAN MODE)
+              AND sc.status != 'DRAFT'
+              AND sc.status != 'INVALIDATED'
+              AND sc.dept_id = #{deptId}
+
+        ) AS count_results
+
+        <where>
+            <if test="forceExcludeClassified">
+                AND count_results.is_classified = 0
+            </if>
+            <if test="!forceExcludeClassified and classification != null and classification != ''">
+                <choose>
+                    <when test="classification == 'NORMAL'">AND count_results.is_classified = 0</when>
+                    <when test="classification == 'CLASSIFIED'">AND count_results.is_classified = 1</when>
+                </choose>
+            </if>
+            <if test="type != null and type != ''">
+                AND count_results.achievementType = #{type}
+            </if>
+            <if test="yearFrom != null">
+                AND count_results.publish_year >= #{yearFrom}
+            </if>
+            <if test="yearTo != null">
+                AND count_results.publish_year &lt;= #{yearTo}
+            </if>
+        </where>
+    </select>
+
+</mapper>

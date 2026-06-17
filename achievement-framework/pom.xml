@@ -109,6 +109,7 @@
             <optional>true</optional>
         </dependency>
 
+<<<<<<< HEAD
         <!-- EasyExcel -->
         <dependency>
             <groupId>com.alibaba</groupId>
@@ -137,6 +138,8 @@
             <version>${itext.version}</version>
         </dependency>
 
+=======
+>>>>>>> worktree-agent-a52c3bcf119358270
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
