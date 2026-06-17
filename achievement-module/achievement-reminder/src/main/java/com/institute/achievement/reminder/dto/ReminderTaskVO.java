@@ -29,6 +29,7 @@ public class ReminderTaskVO {
     private Integer confirmedFlag;
     private LocalDateTime confirmedTime;
     private String escalationLevel;
+    private LocalDateTime escalationTime;
     private Integer emailSentFlag;
     private LocalDateTime emailSentTime;
     private Long deptId;

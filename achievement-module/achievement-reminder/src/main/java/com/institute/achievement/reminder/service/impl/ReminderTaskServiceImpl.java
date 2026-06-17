@@ -274,6 +274,174 @@ public class ReminderTaskServiceImpl implements ReminderTaskService {
                         .ge(ReminderTask::getDeadline, LocalDate.now()));
     }
 
+    // ── Escalation ───────────────────────────────────────────────────────
+
+    /**
+     * Escalation constants matching the 3-tier pattern (D-18).
+     * Reuses the same NONE / DEPT_HEAD / LEADERSHIP naming as Phase 2's
+     * {@code EscalationLevel} but with deadline-relative timing.
+     */
+    private static final String ESCALATION_NONE = "NONE";
+    private static final String ESCALATION_DEPT_HEAD = "DEPT_HEAD";
+    private static final String ESCALATION_LEADERSHIP = "LEADERSHIP";
+
+    /** Days after DEPT_HEAD escalation without confirmation to escalate to LEADERSHIP */
+    private static final long DEPT_HEAD_TO_LEADERSHIP_DAYS = 5;
+
+    /** Role code for department secretaries (DEPT_HEAD target) */
+    private static final String ROLE_SECRETARY = "ROLE_SECRETARY";
+
+    /** Role code for leaders (LEADERSHIP target) */
+    private static final String ROLE_LEADER = "ROLE_LEADER";
+
+    @Override
+    @Transactional
+    public int processEscalations() {
+        // Query all unconfirmed tasks with future deadlines
+        List<ReminderTask> tasks = reminderTaskMapper.findUnconfirmedForEscalation();
+        if (tasks.isEmpty()) {
+            log.debug("Escalation scan: no unconfirmed tasks to escalate");
+            return 0;
+        }
+
+        int escalatedCount = 0;
+
+        for (ReminderTask task : tasks) {
+            try {
+                // Skip if already at max escalation level
+                if (ESCALATION_LEADERSHIP.equals(task.getEscalationLevel())) {
+                    continue;
+                }
+
+                long daysUntilDeadline = ChronoUnit.DAYS.between(LocalDate.now(), task.getDeadline());
+
+                // Resolve urgency-dependent escalation threshold (D-19)
+                UrgencyLevelEnum urgency = UrgencyLevelEnum.fromCode(task.getUrgency());
+                int escalationDaysBeforeDeadline = getEscalationDaysBeforeDeadline(urgency);
+
+                // Check if task is within escalation window
+                if (escalationDaysBeforeDeadline < 0) {
+                    // LOW urgency: never escalates per D-19
+                    continue;
+                }
+                if (daysUntilDeadline > escalationDaysBeforeDeadline) {
+                    // Not yet within escalation window
+                    continue;
+                }
+
+                String currentLevel = task.getEscalationLevel();
+                if (currentLevel == null) {
+                    currentLevel = ESCALATION_NONE;
+                }
+
+                if (ESCALATION_NONE.equals(currentLevel)) {
+                    // Escalate to DEPT_HEAD: notify department secretaries
+                    List<Long> userIds = notificationService.findUserIdsByDeptAndRole(
+                            task.getDeptId(), ROLE_SECRETARY);
+
+                    if (userIds.isEmpty()) {
+                        log.warn("No secretaries found for deptId={}, cannot escalate task id={}",
+                                task.getDeptId(), task.getId());
+                    } else {
+                        String title = "提醒升级 — 请部门负责人处理";
+                        String content = String.format(
+                                "提醒任务「%s」截止日期为 %s，尚有 %d 天，责任人未确认。请部门负责人督促处理。",
+                                task.getTitle(), task.getDeadline(), daysUntilDeadline);
+
+                        for (Long userId : userIds) {
+                            try {
+                                notificationService.send(userId, "REMINDER", title, content,
+                                        "reminder", task.getId());
+                            } catch (Exception e) {
+                                log.error("Failed to send DEPT_HEAD notification to userId={} for task id={}: {}",
+                                        userId, task.getId(), e.getMessage());
+                            }
+                        }
+                    }
+
+                    // Update task escalation state
+                    task.setEscalationLevel(ESCALATION_DEPT_HEAD);
+                    task.setEscalationTime(LocalDateTime.now());
+                    reminderTaskMapper.updateById(task);
+                    escalatedCount++;
+
+                    log.debug("Escalated task id={} to DEPT_HEAD (deadline={}, daysUntilDeadline={})",
+                            task.getId(), task.getDeadline(), daysUntilDeadline);
+
+                } else if (ESCALATION_DEPT_HEAD.equals(currentLevel)) {
+                    // Check if 5+ days since DEPT_HEAD escalation (D-18)
+                    if (task.getEscalationTime() == null) {
+                        log.warn("Task id={} has DEPT_HEAD level but no escalationTime, skipping re-escalation",
+                                task.getId());
+                        continue;
+                    }
+
+                    long daysSinceDeptEscalation = ChronoUnit.DAYS.between(
+                            task.getEscalationTime().toLocalDate(), LocalDate.now());
+
+                    if (daysSinceDeptEscalation < DEPT_HEAD_TO_LEADERSHIP_DAYS) {
+                        // Not enough time since DEPT_HEAD escalation
+                        continue;
+                    }
+
+                    // Escalate to LEADERSHIP: notify leaders across all departments
+                    List<Long> userIds = notificationService.findUserIdsByDeptAndRole(
+                            task.getDeptId(), ROLE_LEADER);
+
+                    if (userIds.isEmpty()) {
+                        log.warn("No leaders found for escalation of task id={}", task.getId());
+                    } else {
+                        String title = "提醒升级 — 请院领导关注";
+                        String content = String.format(
+                                "提醒任务「%s」截止日期为 %s，部门负责人通知已发送 %d 天仍未确认。请院领导关注处理。",
+                                task.getTitle(), task.getDeadline(), daysSinceDeptEscalation);
+
+                        for (Long userId : userIds) {
+                            try {
+                                notificationService.send(userId, "REMINDER", title, content,
+                                        "reminder", task.getId());
+                            } catch (Exception e) {
+                                log.error("Failed to send LEADERSHIP notification to userId={} for task id={}: {}",
+                                        userId, task.getId(), e.getMessage());
+                            }
+                        }
+                    }
+
+                    // Update task escalation state
+                    task.setEscalationLevel(ESCALATION_LEADERSHIP);
+                    task.setEscalationTime(LocalDateTime.now());
+                    reminderTaskMapper.updateById(task);
+                    escalatedCount++;
+
+                    log.debug("Escalated task id={} to LEADERSHIP (deadline={}, daysSinceDeptEscalation={})",
+                            task.getId(), task.getDeadline(), daysSinceDeptEscalation);
+                }
+
+            } catch (Exception e) {
+                log.error("Failed to process escalation for task id={}: {}", task.getId(), e.getMessage());
+                // Continue with next task — partial failures are acceptable
+            }
+        }
+
+        log.info("Reminder escalation processed: {} tasks escalated", escalatedCount);
+        return escalatedCount;
+    }
+
+    /**
+     * Get the escalation days-before-deadline threshold for a given urgency level.
+     * <p>
+     * Returns a negative value for urgency levels that never escalate.
+     *
+     * @param urgency the urgency level (may be null)
+     * @return days before deadline to start escalation, or -1 if no escalation
+     */
+    private int getEscalationDaysBeforeDeadline(UrgencyLevelEnum urgency) {
+        if (urgency == null) {
+            return -1;
+        }
+        return urgency.getEscalationDaysBeforeDeadline();
+    }
+
     // ── Private Helpers ────────────────────────────────────────────────
 
     /**
@@ -342,6 +510,7 @@ public class ReminderTaskServiceImpl implements ReminderTaskService {
         vo.setConfirmedFlag(task.getConfirmedFlag());
         vo.setConfirmedTime(task.getConfirmedTime());
         vo.setEscalationLevel(task.getEscalationLevel());
+        vo.setEscalationTime(task.getEscalationTime());
         vo.setEmailSentFlag(task.getEmailSentFlag());
         vo.setEmailSentTime(task.getEmailSentTime());
         vo.setDeptId(task.getDeptId());
