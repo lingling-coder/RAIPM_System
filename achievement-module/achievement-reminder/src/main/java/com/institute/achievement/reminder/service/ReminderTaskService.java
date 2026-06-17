@@ -99,4 +99,29 @@ public interface ReminderTaskService {
      * @return count of unconfirmed tasks
      */
     long getUnconfirmedCount(Long userId);
+
+    // ── Escalation ───────────────────────────────────────────────────────
+
+    /**
+     * Process escalation of unconfirmed reminder tasks (D-18, D-19).
+     * <p>
+     * Scans all unconfirmed tasks with future deadlines and escalates them
+     * based on urgency-dependent, deadline-relative timing:
+     * <ul>
+     *   <li>HIGH urgency: escalate if daysUntilDeadline &le; 7</li>
+     *   <li>MEDIUM urgency: escalate if daysUntilDeadline &le; 3</li>
+     *   <li>LOW urgency: no escalation (escalationDaysBeforeDeadline = -1)</li>
+     * </ul>
+     * <p>
+     * Escalation chain (3-tier, matching Phase 2 pattern per D-18):
+     * <ol>
+     *   <li>{@code NONE → DEPT_HEAD}: notifies ROLE_SECRETARY users in the task's department</li>
+     *   <li>{@code DEPT_HEAD → LEADERSHIP}: after 5+ days with no confirmation,
+     *       notifies ROLE_LEADER users across departments</li>
+     *   <li>{@code LEADERSHIP}: already at max level, no further escalation</li>
+     * </ol>
+     *
+     * @return number of tasks escalated in this run
+     */
+    int processEscalations();
 }

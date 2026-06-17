@@ -75,6 +75,10 @@ public class ReminderTask {
     @TableField("escalation_level")
     private String escalationLevel;
 
+    /** Last escalation timestamp */
+    @TableField("escalation_time")
+    private LocalDateTime escalationTime;
+
     /** Email sent flag: 0=not sent, 1=sent */
     @TableField("email_sent_flag")
     private Integer emailSentFlag;
