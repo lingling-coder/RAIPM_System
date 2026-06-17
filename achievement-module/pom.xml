@@ -23,5 +23,6 @@
         <module>achievement-copyright</module>
         <module>achievement-fee</module>
         <module>achievement-integration</module>
+        <module>achievement-reminder</module>
     </modules>
 </project>
