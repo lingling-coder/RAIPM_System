@@ -159,6 +159,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/system/api-config/index.vue'),
         meta: { title: 'API集成配置', icon: 'Setting', permission: 'system:api:list' },
       },
+      {
+        path: 'reminder-config',
+        name: 'SystemReminderConfig',
+        component: () => import('@/views/system/reminder-config/index.vue'),
+        meta: { title: '提醒配置', icon: 'Bell', permission: 'system:reminder:list' },
+      },
     ],
   },
 ]

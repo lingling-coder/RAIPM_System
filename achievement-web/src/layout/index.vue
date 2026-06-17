@@ -157,6 +157,7 @@ const systemMenuItemsFull: SystemMenuItem[] = [
   { path: '/system/dict', title: '数据字典', permission: 'system:dict:list' },
   { path: '/system/audit-log', title: '审计日志', permission: 'system:audit:list' },
   { path: '/system/api-config', title: 'API集成配置', permission: 'system:api:list' },
+  { path: '/system/reminder-config', title: '提醒配置', permission: 'system:reminder:list' },
 ]
 
 const route = useRoute()
