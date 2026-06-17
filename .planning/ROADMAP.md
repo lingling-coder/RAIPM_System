@@ -8,9 +8,9 @@
 
 - [x] **Phase 0: Foundation & Infrastructure** (2026-06-16) - 系统管理基础设施：用户/角色/部门管理、JWT认证、RBAC权限、数据隔离、审计日志、文件代理、API集成框架
 - [x] **Phase 1: Achievement Registration & Approval** (2026-06-16) - 论文/专利/软著三大成果的全流程登记、DOI自动补全、审批流转、附件管理、批量导入、成果作废与重复检测
-- [x] **Phase 2: Fee Management & Alerts** - 费用台账与缴费计划、四级预警机制、二次催办、批量缴费单、费用统计 (completed 2026-06-16)
+- [x] **Phase 2: Fee Management & Alerts** - 费用台账与缴费计划、四级预警机制、二次催办、批量缴费单、费用统计 (completed 2026-06-16)
 - [ ] **Phase 3: Dashboard & Search** - 标准可视化看板（4种图表）、Excel/PDF导出、全文检索（中文分词+权限过滤）
-- [ ] **Phase 4: Reminders & System Integration** - 申报提醒全流程（6种类型）、模板管理、站内消息+邮件触达、回执确认与升级
+- [x] **Phase 4: Reminders & System Integration** - 申报提醒全流程（6种类型）、模板管理、站内消息+邮件触达、回执确认与升级 (completed 2026-06-17)
 
 ## Phase Details
 
@@ -94,11 +94,27 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 03-01: Implement statistics dashboard backend (aggregation queries for 4 chart types) with Pinia state management
-- [ ] 03-02: Implement 4 chart types (line/pie/bar/status) using ECharts with Excel and PDF export
-- [ ] 03-03: Implement full-text search with MySQL ngram parser, Chinese word segmentation, fuzzy matching, and keyword highlighting
-- [ ] 03-04: Implement search result filters (achievement type, department, year, classification level) and permission-filtered result delivery
-- [ ] 03-05: Execute concurrency load testing for 50-user scenario and optimize performance bottlenecks
+- [x] 03-01: Dashboard backend (aggregation queries for 4 charts) + Redis cache + iText dependency + Pinia store + API layer + backend tests (Wave 1)
+- [ ] 03-02: Frontend dashboard (ECharts 5.5 + vue-echarts 7, 4 chart components, dashboard page modification, export UI, frontend tests) (Wave 2)
+- [x] 03-03: Search backend (FULLTEXT ngram migration, UNION ALL query, SearchQuerySanitizer, relevance scoring, search API, backend tests) (Wave 1)
+- [ ] 03-04: Frontend search (global nav search box, search results page with filters/pagination/highlighting, router, frontend tests) (Wave 2)
+- [ ] 03-05: Concurrency load testing (50-user concurrent search test, performance report with optimization recommendations) (Wave 3)
+
+**Wave 1** *(parallel backend -- dashboard + search)*
+- 03-01: Dashboard backend API + Redis cache
+- 03-03: Search backend API + FULLTEXT indexes
+
+**Wave 2** *(parallel frontend -- dashboard + search)*
+- 03-02: Dashboard chart components (depends on 03-01 API)
+- 03-04: Search results page (depends on 03-03 API)
+
+**Wave 3** *(performance)*
+- 03-05: Load testing (depends on all frontend + backend complete)
+
+**Cross-cutting constraints:**
+- Permission filtering via inline dept_id in UNION ALL search queries (avoids DataPermissionInterceptor UNION parsing limitation)
+- Classified data auto-excluded for non-manager users via service-layer role check
+- All dashboard queries use @Cacheable with 5-min TTL; search queries uncached (real-time)
 
 **UI hint**: yes
 
@@ -116,11 +132,22 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 04-01: Implement reminder type configuration and template management with batch creation
-- [ ] 04-02: Implement reminder task generation engine with deadline calculation, routing rules, and conflict detection
-- [ ] 04-03: Implement in-app notification system with unread badge, read receipt, and confirmation workflow
-- [ ] 04-04: Implement email integration (SMTP) with template rendering, configuration management, and fallback handling
-- [ ] 04-05: Implement escalation rules engine, secondary notification logic, and high-urgency modal popup
+- [x] 04-01: Reminder config CRUD (new achievement-reminder module, Flyway V16, enum/entity/mapper/service/controller, admin config page under /system/reminder-config) -- 3 tasks
+- [x] 04-02: Task generation engine (daily 3 AM scheduler with Redis lock + idempotency, dual-assignment routing, in-app notification, user-facing API for list/confirm/dismiss) -- 3 tasks
+- [x] 04-03: REMINDER tab + read receipt UI (NotificationCenter.vue REMINDER tab, ReminderConfirmButton, frontend API module) -- 3 tasks
+- [x] 04-04: Email SMTP integration (programmatic JavaMailSenderImpl from sys_config DB, dedicated async thread pool, 6 Thymeleaf email templates, SMTP config admin page with test send) -- 3 tasks
+- [x] 04-05: Escalation + high-urgency popup (5 AM escalation scheduler, deadline-relative urgency-dependent state machine, ReminderUrgencyPopUp non-blocking modal, reminder store) -- 3 tasks
+
+**Wave 1** *(serial -- config CRUD)*
+- 04-01: Reminder config CRUD (creates module, enums, tables, admin page)
+
+**Wave 2** *(parallel backend -- email + task generation)*
+- 04-04: Email SMTP integration (depends on 01 for module structure)
+- 04-02: Task generation engine (depends on 01 for module structure; uses @Autowired(required=false) for optional EmailService)
+
+**Wave 3** *(parallel frontend + escalation -- notification tab + escalation popup)*
+- 04-03: REMINDER tab + read receipt UI (depends on 02 for task API)
+- 04-05: Escalation + high-urgency popup (depends on 02 for task data; has checkpoint for human-verify of popup behavior)
 
 **UI hint**: yes
 
@@ -134,5 +161,5 @@ Phases execute in numeric order: 0 -> 1 -> 2 -> 3 -> 4
 | 0. Foundation & Infrastructure | 5/5 | Complete | 2026-06-16 |
 | 1. Achievement Registration & Approval | 5/5 | Complete | 2026-06-16 |
 | 2. Fee Management & Alerts | 6/5 | Complete   | 2026-06-16 |
-| 3. Dashboard & Search | 0/5 | Not started | - |
-| 4. Reminders & System Integration | 0/5 | Not started | - |
+| 3. Dashboard & Search | 2/5 | In Progress|  |
+| 4. Reminders & System Integration | 5/5 | Complete   | 2026-06-17 |
