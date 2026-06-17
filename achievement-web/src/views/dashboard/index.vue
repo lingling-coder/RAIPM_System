@@ -75,45 +75,6 @@
           </el-button>
         </el-space>
       </el-card>
-
-      <!-- Chart Area (Phase 3) -->
-      <div class="chart-area" v-if="!dashboardStore.loading">
-        <el-tabs v-model="activeChart" @tab-change="handleChartTabChange">
-          <el-tab-pane label="年度趋势" name="trend" />
-          <el-tab-pane label="类型分布" name="type-dist" />
-          <el-tab-pane label="部门排行" name="dept-rank" />
-          <el-tab-pane label="专利状态" name="patent-status" />
-        </el-tabs>
-
-        <AnnualTrendChart
-          v-if="activeChart === 'trend'"
-          :data="dashboardStore.annualTrend"
-          :loading="dashboardStore.loading"
-          @export-excel="exportChartExcel('trend')"
-          @export-pdf="exportChartPdf('trend')"
-        />
-        <TypeDistChart
-          v-else-if="activeChart === 'type-dist'"
-          :data="dashboardStore.typeDist"
-          :loading="dashboardStore.loading"
-          @export-excel="exportChartExcel('type-dist')"
-          @export-pdf="exportChartPdf('type-dist')"
-        />
-        <DeptRankChart
-          v-else-if="activeChart === 'dept-rank'"
-          :data="dashboardStore.deptRanking"
-          :loading="dashboardStore.loading"
-          @export-excel="exportChartExcel('dept-rank')"
-          @export-pdf="exportChartPdf('dept-rank')"
-        />
-        <PatentStatusChart
-          v-else-if="activeChart === 'patent-status'"
-          :data="dashboardStore.patentStatus"
-          :loading="dashboardStore.loading"
-          @export-excel="exportChartExcel('patent-status')"
-          @export-pdf="exportChartPdf('patent-status')"
-        />
-      </div>
     </template>
   </div>
 </template>
@@ -121,22 +82,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/store/user'
-import { useDashboardStore } from '@/store/dashboard'
 import { useRouter } from 'vue-router'
-import AnnualTrendChart from '@/components/dashboard/AnnualTrendChart.vue'
-import TypeDistChart from '@/components/dashboard/TypeDistChart.vue'
-import DeptRankChart from '@/components/dashboard/DeptRankChart.vue'
-import PatentStatusChart from '@/components/dashboard/PatentStatusChart.vue'
-import * as dashboardApi from '@/api/dashboard'
-import { ElMessage } from 'element-plus'
 
 const userStore = useUserStore()
-const dashboardStore = useDashboardStore()
 const router = useRouter()
 
 const loading = ref(false)
 const error = ref(false)
-const activeChart = ref('trend')
 
 const userInfo = computed(() => userStore.userInfo)
 const isAdmin = computed(() => userStore.roles.includes('ROLE_SYSTEM_ADMIN'))
@@ -170,53 +122,20 @@ async function loadData() {
   loading.value = true
   error.value = false
   try {
-    // Load chart data from store (fetches from API with 5-min cache)
-    await dashboardStore.fetchAll()
+    // Phase 0: static stats for now. Phase 3 will add ECharts and real data.
+    if (isAdmin.value) {
+      // Admin stats will be populated when backend dashboard API is available
+      adminStats.value = [
+        { label: '总用户数', value: '-', action: () => router.push('/system/user') },
+        { label: '总部门数', value: '-', action: () => router.push('/system/department') },
+        { label: '总角色数', value: '-', action: () => router.push('/system/role') },
+      ]
+    }
   } catch (e) {
     error.value = true
     console.error('Failed to load dashboard data:', e)
   } finally {
     loading.value = false
-  }
-}
-
-function handleChartTabChange(tabName: string) {
-  activeChart.value = tabName
-  // No data re-fetch needed — data already in store (D-04)
-}
-
-function downloadBlob(blob: Blob, filename: string) {
-  const url = window.URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  window.URL.revokeObjectURL(url)
-}
-
-async function exportChartExcel(chartType: string) {
-  try {
-    const res: any = await dashboardApi.exportExcel(chartType)
-    const blob = res instanceof Blob ? res : res?.data
-    if (!blob) { ElMessage.error('导出失败'); return }
-    downloadBlob(blob, `${chartType}.xlsx`)
-    ElMessage.success('导出成功')
-  } catch {
-    ElMessage.error('导出失败')
-  }
-}
-
-async function exportChartPdf(chartType: string) {
-  try {
-    const res: any = await dashboardApi.exportPdf(chartType)
-    const blob = res instanceof Blob ? res : res?.data
-    if (!blob) { ElMessage.error('导出失败'); return }
-    downloadBlob(blob, `${chartType}.pdf`)
-    ElMessage.success('导出成功')
-  } catch {
-    ElMessage.error('导出失败')
   }
 }
 </script>
@@ -272,10 +191,6 @@ async function exportChartPdf(chartType: string) {
 
   .quick-actions {
     margin-top: 16px;
-  }
-
-  .chart-area {
-    margin-top: 24px;
   }
 }
 </style>
