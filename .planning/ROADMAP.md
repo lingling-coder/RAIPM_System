@@ -97,8 +97,8 @@ Plans:
 - [x] 03-01: Dashboard backend (aggregation queries for 4 charts) + Redis cache + iText dependency + Pinia store + API layer + backend tests (Wave 1)
 - [x] 03-02: Frontend dashboard (ECharts 5.5 + vue-echarts 7, 4 chart components, dashboard page modification, export UI, frontend tests) (Wave 2)
 - [x] 03-03: Search backend (FULLTEXT ngram migration, UNION ALL query, SearchQuerySanitizer, relevance scoring, search API, backend tests) (Wave 1)
-- [ ] 03-04: Frontend search (global nav search box, search results page with filters/pagination/highlighting, router, frontend tests) (Wave 2)
-- [ ] 03-05: Concurrency load testing (50-user concurrent search test, performance report with optimization recommendations) (Wave 3)
+- [x] 03-04: Frontend search (global nav search box, search results page with filters/pagination/highlighting, router, frontend tests) (Wave 2)
+- [x] 03-05: Concurrency load testing (50-user concurrent search test, performance report with optimization recommendations) (Wave 3)
 
 **Wave 1** *(parallel backend -- dashboard + search)*
 - 03-01: Dashboard backend API + Redis cache
@@ -161,5 +161,5 @@ Phases execute in numeric order: 0 -> 1 -> 2 -> 3 -> 4
 | 0. Foundation & Infrastructure | 5/5 | Complete | 2026-06-16 |
 | 1. Achievement Registration & Approval | 5/5 | Complete | 2026-06-16 |
 | 2. Fee Management & Alerts | 6/5 | Complete   | 2026-06-16 |
-| 3. Dashboard & Search | 3/5 | In Progress|  |
+| 3. Dashboard & Search | 5/5 | Complete | 2026-06-18 |
 | 4. Reminders & System Integration | 5/5 | Complete   | 2026-06-17 |
