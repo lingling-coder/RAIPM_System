@@ -55,7 +55,7 @@ public class EncryptUtil {
                     byte[] key = getSecretKey();
                     // Use GCM mode for authenticated encryption
                     aesInstance = new AES("GCM", "PKCS5Padding",
-                            KeyUtil.generateKey("AES", 256, key));
+                            KeyUtil.generateKey("AES", key));
                 }
             }
         }
