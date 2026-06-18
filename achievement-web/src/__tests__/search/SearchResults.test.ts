@@ -15,13 +15,19 @@ vi.mock('@/api/search', () => ({
 const pushMock = vi.fn()
 const routeQueryRef: Ref<Record<string, string>> = ref({ keyword: 'test' })
 
-vi.mock('vue-router', () => ({
-  useRoute: () => ({
-    query: routeQueryRef.value,
-    params: {},
-  }),
-  useRouter: () => ({ push: pushMock }),
-}))
+// Use importOriginal to preserve other exports (createRouter, etc.)
+// that are needed by router/index.ts which is imported by store/user.ts
+vi.mock(import('vue-router'), async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    useRoute: () => ({
+      query: routeQueryRef.value,
+      params: {},
+    }),
+    useRouter: () => ({ push: pushMock }),
+  }
+})
 
 // ── Mock HighlightedText (tested separately) ───────────────────────
 vi.mock('@/components/dashboard/HighlightedText.vue', () => ({
