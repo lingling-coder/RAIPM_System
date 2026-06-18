@@ -20,6 +20,7 @@ export const useUserStore = defineStore('user', () => {
   const roles = ref<string[]>([])
   const permissions = ref<string[]>([])
   const userInfo = ref<ProfileInfo | null>(null)
+  const deptList = ref<Array<{ id: number; deptName: string }>>([])
 
   // ── Getters ────────────────────────────────────────────────────────────
   function isLoggedIn(): boolean {
@@ -100,6 +101,7 @@ export const useUserStore = defineStore('user', () => {
     roles.value = []
     permissions.value = []
     userInfo.value = null
+    deptList.value = []
   }
 
   return {
@@ -109,6 +111,7 @@ export const useUserStore = defineStore('user', () => {
     roles,
     permissions,
     userInfo,
+    deptList,
     // Getters
     isLoggedIn,
     hasPermission,
