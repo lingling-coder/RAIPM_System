@@ -110,6 +110,13 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/notification/NotificationCenter.vue'),
     meta: { title: '通知中心', hidden: true },
   },
+  // ── Search Results (Phase 3, D-08) ────────────────────────────
+  {
+    path: '/search',
+    name: 'SearchResults',
+    component: () => import('@/views/search/SearchResults.vue'),
+    meta: { title: '搜索', hidden: true },
+  },
   // ── Batch Import ──────────────────────────────────────────
   {
     path: '/batch-import',

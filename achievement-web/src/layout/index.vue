@@ -90,6 +90,18 @@
           </el-breadcrumb>
         </div>
         <div class="header-right">
+          <!-- Global Search Box (Phase 3, D-08) -->
+          <div class="global-search">
+            <el-input
+              v-model="searchKeyword"
+              placeholder="搜索成果标题、摘要、作者..."
+              :prefix-icon="Search"
+              clearable
+              @keyup.enter="doSearch"
+              style="width: 240px; margin-right: 12px;"
+            />
+          </div>
+
           <!-- Notification Bell -->
           <NotificationBell />
 
@@ -122,7 +134,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '@/store/app'
 import { useUserStore } from '@/store/user'
@@ -139,6 +151,7 @@ import {
   UserFilled,
   User,
   SwitchButton,
+  Search,
 } from '@element-plus/icons-vue'
 import NotificationBell from '@/components/notification/NotificationBell.vue'
 import ReminderUrgencyPopUp from '@/components/reminder/ReminderUrgencyPopUp.vue'
@@ -190,6 +203,15 @@ const hasSystemPermission = computed(() => {
 const systemMenuItems = computed(() => {
   return systemMenuItemsFull.filter(item => userStore.hasPermission(item.permission))
 })
+
+// ── Global Search (Phase 3, D-08) ────────────────────────────────────
+const searchKeyword = ref('')
+
+function doSearch() {
+  const keyword = searchKeyword.value.trim()
+  if (!keyword) return
+  router.push({ path: '/search', query: { keyword } })
+}
 
 // Navigation functions
 function goToProfile() {
