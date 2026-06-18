@@ -14,10 +14,12 @@
     "@element-plus/icons-vue": "^2.3.1",
     "axios": "^1.7.0",
     "dayjs": "^1.11.0",
+    "echarts": "5.5",
     "element-plus": "^2.9.0",
     "nprogress": "^0.2.0",
     "pinia": "^3.0.0",
     "vue": "^3.4.0",
+    "vue-echarts": "^7.0.3",
     "vue-router": "^4.3.0"
   },
   "devDependencies": {
