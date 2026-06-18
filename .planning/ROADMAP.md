@@ -9,7 +9,7 @@
 - [x] **Phase 0: Foundation & Infrastructure** (2026-06-16) - 系统管理基础设施：用户/角色/部门管理、JWT认证、RBAC权限、数据隔离、审计日志、文件代理、API集成框架
 - [x] **Phase 1: Achievement Registration & Approval** (2026-06-16) - 论文/专利/软著三大成果的全流程登记、DOI自动补全、审批流转、附件管理、批量导入、成果作废与重复检测
 - [x] **Phase 2: Fee Management & Alerts** - 费用台账与缴费计划、四级预警机制、二次催办、批量缴费单、费用统计 (completed 2026-06-16)
-- [ ] **Phase 3: Dashboard & Search** - 标准可视化看板（4种图表）、Excel/PDF导出、全文检索（中文分词+权限过滤）
+- [x] **Phase 3: Dashboard & Search** (2026-06-18) - 标准可视化看板（4种图表）、Excel/PDF导出、全文检索（中文分词+权限过滤）
 - [x] **Phase 4: Reminders & System Integration** - 申报提醒全流程（6种类型）、模板管理、站内消息+邮件触达、回执确认与升级 (completed 2026-06-17)
 
 ## Phase Details
