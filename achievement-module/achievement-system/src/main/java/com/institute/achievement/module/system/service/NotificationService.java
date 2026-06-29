@@ -6,6 +6,7 @@ import com.institute.achievement.common.exception.AchievementException;
 import com.institute.achievement.common.service.INotificationService;
 import com.institute.achievement.framework.security.SecurityUtils;
 import com.institute.achievement.module.system.entity.Notification;
+import com.institute.achievement.module.system.entity.SysUser;
 import com.institute.achievement.module.system.mapper.NotificationMapper;
 import com.institute.achievement.module.system.mapper.SysUserMapper;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * In-app notification service with Redis unread count caching.
@@ -159,20 +162,26 @@ public class NotificationService implements INotificationService {
         String notificationTitle = "新的审批待办：" + title;
         String content = "成果《" + title + "》已提交，请尽快审核。";
 
-        // RBAC query: find all users in this department with secretary role
-        List<Long> userIds = findUserIdsByDeptAndRole(deptId, "ROLE_SECRETARY");
-        if (userIds.isEmpty()) {
-            log.warn("No users found with ROLE_SECRETARY in deptId={}, fallback to sentinel", deptId);
-            // Fallback: send to sentinel userId=0 (Phase 1 compatibility)
-            send(0L, "APPROVAL", notificationTitle, content, achievementType, achievementId);
-        } else {
-            for (Long userId : userIds) {
-                send(userId, "APPROVAL", notificationTitle, content, achievementType, achievementId);
-            }
+        // Notify all department secretaries
+        List<Long> secretaryIds = findUserIdsByDeptAndRole(deptId, "ROLE_DEPT_SECRETARY");
+        for (Long userId : secretaryIds) {
+            send(userId, "APPROVAL", notificationTitle, content, achievementType, achievementId);
         }
 
-        log.info("Dept secretaries notified: deptId={}, achievementType={}, id={}, userCount={}",
-                deptId, achievementType, achievementId, userIds.size());
+        // Also notify department admins who share approval responsibility
+        List<Long> adminIds = findUserIdsByDeptAndRole(deptId, "ROLE_DEPT_ADMIN");
+        for (Long userId : adminIds) {
+            send(userId, "APPROVAL", notificationTitle, content, achievementType, achievementId);
+        }
+
+        // Fallback: if no dept-level approvers found, send to sentinel userId=0
+        if (secretaryIds.isEmpty() && adminIds.isEmpty()) {
+            log.warn("No approvers found in deptId={}, fallback to sentinel", deptId);
+            send(0L, "APPROVAL", notificationTitle, content, achievementType, achievementId);
+        }
+
+        log.info("Dept approvers notified: deptId={}, type={}, id={}, secretaries={}, admins={}",
+                deptId, achievementType, achievementId, secretaryIds.size(), adminIds.size());
     }
 
     /**
@@ -237,6 +246,23 @@ public class NotificationService implements INotificationService {
             log.trace("Failed to resolve user name for userId={}: {}", userId, e.getMessage());
         }
         return "用户" + userId;
+    }
+
+    /**
+     * Batch resolve user display names.
+     * Uses a single batch query for efficiency.
+     */
+    @Override
+    public Map<Long, String> resolveUserNames(java.util.Collection<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) return Map.of();
+        try {
+            List<SysUser> users = sysUserMapper.selectBatchIds(userIds);
+            return users.stream()
+                    .collect(Collectors.toMap(SysUser::getId, SysUser::getRealName));
+        } catch (Exception e) {
+            log.trace("Failed to batch resolve user names: {}", e.getMessage());
+            return INotificationService.super.resolveUserNames(userIds);
+        }
     }
 
     /**

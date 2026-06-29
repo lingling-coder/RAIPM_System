@@ -52,7 +52,7 @@ class DuplicateCheckServiceTest {
 
         when(paperMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(existing);
 
-        java.util.Optional<Paper> result = duplicateCheckService.findExistingByDoi("10.1234/test");
+        java.util.Optional<Paper> result = duplicateCheckService.findExistingByDoi("10.1234/test", null);
         assertThat(result).isPresent();
         assertThat(result.get().getId()).isEqualTo(1L);
     }
@@ -61,7 +61,7 @@ class DuplicateCheckServiceTest {
     void testFindExistingByDoi_shouldReturnEmptyWhenNoDuplicate() {
         when(paperMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
 
-        java.util.Optional<Paper> result = duplicateCheckService.findExistingByDoi("10.9999/unique");
+        java.util.Optional<Paper> result = duplicateCheckService.findExistingByDoi("10.9999/unique", null);
         assertThat(result).isEmpty();
     }
 
@@ -77,7 +77,7 @@ class DuplicateCheckServiceTest {
 
         when(patentMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(existing);
 
-        java.util.Optional<Patent> result = duplicateCheckService.findExistingByApplicationNo("CN202410000001");
+        java.util.Optional<Patent> result = duplicateCheckService.findExistingByApplicationNo("CN202410000001", null);
         assertThat(result).isPresent();
         assertThat(result.get().getId()).isEqualTo(2L);
     }
@@ -86,7 +86,7 @@ class DuplicateCheckServiceTest {
     void testFindExistingByApplicationNo_shouldReturnEmptyWhenNoDuplicate() {
         when(patentMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
 
-        java.util.Optional<Patent> result = duplicateCheckService.findExistingByApplicationNo("CN202410099999");
+        java.util.Optional<Patent> result = duplicateCheckService.findExistingByApplicationNo("CN202410099999", null);
         assertThat(result).isEmpty();
     }
 
@@ -102,7 +102,7 @@ class DuplicateCheckServiceTest {
 
         when(copyrightMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(existing);
 
-        java.util.Optional<Copyright> result = duplicateCheckService.findExistingByRegistrationNo("2026SR000001");
+        java.util.Optional<Copyright> result = duplicateCheckService.findExistingByRegistrationNo("2026SR000001", null);
         assertThat(result).isPresent();
         assertThat(result.get().getId()).isEqualTo(3L);
     }
@@ -111,7 +111,7 @@ class DuplicateCheckServiceTest {
     void testFindExistingByRegistrationNo_shouldReturnEmptyWhenNoDuplicate() {
         when(copyrightMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
 
-        java.util.Optional<Copyright> result = duplicateCheckService.findExistingByRegistrationNo("2026SR099999");
+        java.util.Optional<Copyright> result = duplicateCheckService.findExistingByRegistrationNo("2026SR099999", null);
         assertThat(result).isEmpty();
     }
 
@@ -126,7 +126,7 @@ class DuplicateCheckServiceTest {
 
         when(paperMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(existing);
 
-        DuplicateCheckResult result = duplicateCheckService.checkDuplicateForSubmit("paper", "10.1234/dup");
+        DuplicateCheckResult result = duplicateCheckService.checkDuplicateForSubmit("paper", "10.1234/dup", null);
         assertThat(result).isNotNull();
         assertThat(result.isDuplicate()).isTrue();
         assertThat(result.getExistingId()).isEqualTo(1L);
@@ -136,14 +136,14 @@ class DuplicateCheckServiceTest {
 
     @Test
     void testCheckDuplicateForSubmit_shouldReturnNoDuplicateForNullDoi() {
-        DuplicateCheckResult result = duplicateCheckService.checkDuplicateForSubmit("paper", null);
+        DuplicateCheckResult result = duplicateCheckService.checkDuplicateForSubmit("paper", null, null);
         assertThat(result).isNotNull();
         assertThat(result.isDuplicate()).isFalse();
     }
 
     @Test
     void testCheckDuplicateForSubmit_shouldReturnNoDuplicateForEmptyString() {
-        DuplicateCheckResult result = duplicateCheckService.checkDuplicateForSubmit("paper", "");
+        DuplicateCheckResult result = duplicateCheckService.checkDuplicateForSubmit("paper", "", null);
         assertThat(result).isNotNull();
         assertThat(result.isDuplicate()).isFalse();
     }
@@ -156,7 +156,7 @@ class DuplicateCheckServiceTest {
         // In the current design, duplicate check happens before status transition,
         // so we only check by unique field value. If the field is empty/null,
         // we return no duplicate.
-        DuplicateCheckResult result = duplicateCheckService.checkDuplicateForSubmit("paper", null);
+        DuplicateCheckResult result = duplicateCheckService.checkDuplicateForSubmit("paper", null, null);
         assertThat(result.isDuplicate()).isFalse();
     }
 }

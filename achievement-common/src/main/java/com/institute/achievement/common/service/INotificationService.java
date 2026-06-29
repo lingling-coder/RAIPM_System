@@ -1,6 +1,10 @@
 package com.institute.achievement.common.service;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Shared notification service interface.
@@ -46,5 +50,21 @@ public interface INotificationService {
      */
     default String resolveUserName(Long userId) {
         return "用户" + userId;
+    }
+
+    /**
+     * Batch resolve user display names from user IDs.
+     * <p>
+     * Default implementation calls {@link #resolveUserName(Long)} per ID.
+     * Implementations with database access should override to use a single
+     * batch query for efficiency.
+     *
+     * @param userIds collection of user IDs
+     * @return map of userId -> display name
+     */
+    default Map<Long, String> resolveUserNames(Collection<Long> userIds) {
+        return userIds.stream()
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(id -> id, this::resolveUserName));
     }
 }

@@ -62,7 +62,7 @@ public class RoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impleme
     @Override
     public RoleVO getById(Long id) {
         SysRole role = this.baseMapper.selectById(id);
-        if (role == null || role.getDeleted() == 1) {
+        if (role == null || Integer.valueOf(1).equals(role.getDeleted())) {
             throw new EntityNotFoundException("Role", id);
         }
         return toRoleVO(role);
@@ -91,7 +91,7 @@ public class RoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impleme
     @Transactional(rollbackFor = Exception.class)
     public void update(RoleUpdateDTO dto) {
         SysRole role = this.baseMapper.selectById(dto.getId());
-        if (role == null || role.getDeleted() == 1) {
+        if (role == null || Integer.valueOf(1).equals(role.getDeleted())) {
             throw new EntityNotFoundException("Role", dto.getId());
         }
 
@@ -107,13 +107,15 @@ public class RoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impleme
     @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
         SysRole role = this.baseMapper.selectById(id);
-        if (role == null || role.getDeleted() == 1) {
+        if (role == null || Integer.valueOf(1).equals(role.getDeleted())) {
             throw new EntityNotFoundException("Role", id);
         }
 
-        // Check if users are assigned this role
+        // Check if active (non-deleted) users are assigned this role
         Long userCount = userRoleMapper.selectCount(
-                new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getRoleId, id)
+                new LambdaQueryWrapper<SysUserRole>()
+                        .eq(SysUserRole::getRoleId, id)
+                        .apply("EXISTS (SELECT 1 FROM sys_user u WHERE u.id = sys_user_role.user_id AND u.deleted = 0)")
         );
         if (userCount > 0) {
             throw new BusinessException("Cannot delete role '" + role.getRoleName()
@@ -127,7 +129,7 @@ public class RoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impleme
     @Transactional(rollbackFor = Exception.class)
     public void assignMenuPermissions(Long roleId, List<Long> menuIds) {
         SysRole role = this.baseMapper.selectById(roleId);
-        if (role == null || role.getDeleted() == 1) {
+        if (role == null || Integer.valueOf(1).equals(role.getDeleted())) {
             throw new EntityNotFoundException("Role", roleId);
         }
 
@@ -194,6 +196,7 @@ public class RoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impleme
         List<Map<String, Object>> counts = userRoleMapper.selectMaps(
                 new QueryWrapper<SysUserRole>()
                         .in("role_id", roleIds)
+                        .apply("EXISTS (SELECT 1 FROM sys_user u WHERE u.id = sys_user_role.user_id AND u.deleted = 0)")
                         .groupBy("role_id")
                         .select("role_id, COUNT(*) as count")
         );

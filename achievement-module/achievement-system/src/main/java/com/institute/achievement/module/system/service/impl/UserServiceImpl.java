@@ -88,7 +88,7 @@ public class UserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impleme
     @Override
     public UserVO getById(Long id) {
         SysUser user = this.baseMapper.selectById(id);
-        if (user == null || user.getDeleted() == 1) {
+        if (user == null || Integer.valueOf(1).equals(user.getDeleted())) {
             throw new EntityNotFoundException("User", id);
         }
         return toUserVO(user);
@@ -133,7 +133,7 @@ public class UserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impleme
     @Transactional(rollbackFor = Exception.class)
     public void update(UserUpdateDTO dto) {
         SysUser user = this.baseMapper.selectById(dto.getId());
-        if (user == null || user.getDeleted() == 1) {
+        if (user == null || Integer.valueOf(1).equals(user.getDeleted())) {
             throw new EntityNotFoundException("User", dto.getId());
         }
 
@@ -164,7 +164,7 @@ public class UserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impleme
     @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
         SysUser user = this.baseMapper.selectById(id);
-        if (user == null || user.getDeleted() == 1) {
+        if (user == null || Integer.valueOf(1).equals(user.getDeleted())) {
             throw new EntityNotFoundException("User", id);
         }
         // MyBatis-Plus @TableLogic will convert to UPDATE deleted=1
@@ -183,7 +183,7 @@ public class UserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impleme
     @Transactional(rollbackFor = Exception.class)
     public void setStatus(Long id, Integer status) {
         SysUser user = this.baseMapper.selectById(id);
-        if (user == null || user.getDeleted() == 1) {
+        if (user == null || Integer.valueOf(1).equals(user.getDeleted())) {
             throw new EntityNotFoundException("User", id);
         }
         if (status != 0 && status != 1) {
@@ -197,7 +197,7 @@ public class UserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impleme
     @Transactional(rollbackFor = Exception.class)
     public void resetPassword(Long id) {
         SysUser user = this.baseMapper.selectById(id);
-        if (user == null || user.getDeleted() == 1) {
+        if (user == null || Integer.valueOf(1).equals(user.getDeleted())) {
             throw new EntityNotFoundException("User", id);
         }
         user.setPassword(passwordEncoder.encode(DEFAULT_RESET_PASSWORD));

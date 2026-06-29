@@ -147,10 +147,10 @@ const roleLabel = computed(() => {
   return userInfo.value.roleNames.join('、')
 })
 
-const adminStats = ref([
-  { label: '总用户数', value: '-', action: () => router.push('/system/user') },
-  { label: '总部门数', value: '-', action: () => router.push('/system/department') },
-  { label: '总角色数', value: '-', action: () => router.push('/system/role') },
+const adminStats = computed(() => [
+  { label: '总用户数', value: dashboardStore.summary.totalUsers.toLocaleString(), action: () => router.push('/system/user') },
+  { label: '总部门数', value: dashboardStore.summary.totalDepts.toLocaleString(), action: () => router.push('/system/department') },
+  { label: '总角色数', value: dashboardStore.summary.totalRoles.toLocaleString(), action: () => router.push('/system/role') },
 ])
 
 const defaultStats = ref([

@@ -2,6 +2,7 @@ package com.institute.achievement.patent;
 
 import com.institute.achievement.common.enums.AchievementStatusEnum;
 import com.institute.achievement.common.exception.AchievementException;
+import com.institute.achievement.common.service.INotificationService;
 import com.institute.achievement.patent.dto.PatentDTO;
 import com.institute.achievement.patent.entity.Patent;
 import com.institute.achievement.patent.mapper.PatentMapper;
@@ -32,11 +33,14 @@ class PatentServiceTest {
     @Mock
     private PatentMapper patentMapper;
 
+    @Mock
+    private INotificationService notificationService;
+
     private PatentService patentService;
 
     @BeforeEach
     void setUp() {
-        patentService = new PatentService(patentMapper);
+        patentService = new PatentService(patentMapper, notificationService);
     }
 
     // ── createPatent ──────────────────────────────────────────────────────

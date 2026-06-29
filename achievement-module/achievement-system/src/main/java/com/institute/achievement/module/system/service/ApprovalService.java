@@ -9,8 +9,13 @@ import com.institute.achievement.copyright.entity.Copyright;
 import com.institute.achievement.copyright.mapper.CopyrightMapper;
 import com.institute.achievement.framework.security.SecurityUtils;
 import com.institute.achievement.module.system.dto.ApprovalRecordVO;
+import com.institute.achievement.module.system.dto.PendingApprovalVO;
 import com.institute.achievement.module.system.entity.ApprovalRecord;
+import com.institute.achievement.module.system.entity.SysDepartment;
+import com.institute.achievement.module.system.entity.SysUser;
 import com.institute.achievement.module.system.mapper.ApprovalRecordMapper;
+import com.institute.achievement.module.system.mapper.SysDepartmentMapper;
+import com.institute.achievement.module.system.mapper.SysUserMapper;
 import com.institute.achievement.paper.entity.Paper;
 import com.institute.achievement.paper.mapper.PaperMapper;
 import com.institute.achievement.patent.entity.Patent;
@@ -22,8 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -62,6 +66,8 @@ public class ApprovalService {
     private final ApprovalRecordMapper approvalRecordMapper;
     private final NotificationService notificationService;
     private final AuditLogService auditLogService;
+    private final SysUserMapper sysUserMapper;
+    private final SysDepartmentMapper sysDepartmentMapper;
 
     // ── Archive Number Generation ──────────────────────────────────────
 
@@ -284,19 +290,150 @@ public class ApprovalService {
 
     /**
      * Get paginated pending approvals based on user role.
-     * - Dept secretary: achievements where status=PENDING_DEPT_REVIEW AND dept matches
-     * - Admin: achievements where status=PENDING_ADMIN_ARCHIVE
+     * <p>
+     * - Dept secretary: achievements in their department with status {@code PENDING_DEPT_REVIEW}
+     * - System admin: achievements across all departments with status {@code PENDING_DEPT_REVIEW}
+     *   or {@code PENDING_ADMIN_ARCHIVE}
+     * <p>
+     * Results are merged from all three achievement tables (paper, patent, software_copyright),
+     * sorted by submission time descending, and enriched with submitter real name and
+     * department name.
      */
-    public Page<ApprovalRecord> getPendingApprovals(Long userId, String type, String dateRange,
-                                                     int page, int size) {
-        // Simplified: return records where the user's department has pending items.
-        // In production, this uses a more sophisticated query.
-        Page<ApprovalRecord> pageParam = new Page<>(page, size);
+    public Page<PendingApprovalVO> getPendingApprovals(Long userId, String type, String dateRange,
+                                                        int page, int size) {
+        // ── 1. Determine user context from actual role codes ──────────────
+        List<String> roles = SecurityUtils.getCurrentRoles();
+        boolean isDeptSecretary = roles.contains("ROLE_DEPT_SECRETARY");
+        boolean isDeptAdmin = roles.contains("ROLE_DEPT_ADMIN");
+        boolean isAdmin = roles.contains("ROLE_SYSTEM_ADMIN");
 
-        // For Phase 1, we return an empty page and let the frontend use the
-        // per-type achievement list endpoints filtered by status.
-        // The proper pending approval query will be implemented in a follow-up.
-        return pageParam;
+        // Dept secretary and dept admin see their own dept's pending items; admins see all
+        boolean canViewDeptPending = isDeptSecretary || isDeptAdmin;
+        Long deptId = canViewDeptPending ? SecurityUtils.getCurrentDeptId() : null;
+
+        // Determine which statuses to query
+        Set<String> targetStatuses = new LinkedHashSet<>();
+        targetStatuses.add(AchievementStatusEnum.PENDING_DEPT_REVIEW.name());
+        // Dept admin sees both pending stages within their department (full pipeline visibility)
+        // System admin sees all pending items across all departments
+        if (isAdmin || isDeptAdmin) {
+            targetStatuses.add(AchievementStatusEnum.PENDING_ADMIN_ARCHIVE.name());
+        }
+
+        // ── 2. Query each achievement table ──────────────────────────────
+        List<PendingApprovalVO> allItems = new ArrayList<>();
+
+        // Papers
+        if (!StringUtils.hasText(type) || "paper".equals(type)) {
+            QueryWrapper<Paper> pw = new QueryWrapper<>();
+            pw.in("status", targetStatuses);
+            if (deptId != null) pw.eq("dept_id", deptId);
+            pw.orderByDesc("created_time");
+            for (Paper p : paperMapper.selectList(pw)) {
+                PendingApprovalVO vo = new PendingApprovalVO();
+                vo.setId(p.getId());
+                vo.setType("paper");
+                vo.setTitle(p.getTitle());
+                vo.setSubmitTime(p.getCreatedTime());
+                vo.setCreatedBy(p.getCreatedBy());
+                vo.setDeptId(p.getDeptId());
+                allItems.add(vo);
+            }
+        }
+
+        // Patents
+        if (!StringUtils.hasText(type) || "patent".equals(type)) {
+            QueryWrapper<Patent> pw = new QueryWrapper<>();
+            pw.in("status", targetStatuses);
+            if (deptId != null) pw.eq("dept_id", deptId);
+            pw.orderByDesc("created_time");
+            for (Patent p : patentMapper.selectList(pw)) {
+                PendingApprovalVO vo = new PendingApprovalVO();
+                vo.setId(p.getId());
+                vo.setType("patent");
+                vo.setTitle(p.getPatentName());
+                vo.setSubmitTime(p.getCreatedTime());
+                vo.setCreatedBy(p.getCreatedBy());
+                vo.setDeptId(p.getDeptId());
+                allItems.add(vo);
+            }
+        }
+
+        // Copyrights (software_copyright table)
+        if (!StringUtils.hasText(type) || "copyright".equals(type)) {
+            QueryWrapper<Copyright> cw = new QueryWrapper<>();
+            cw.in("status", targetStatuses);
+            if (deptId != null) cw.eq("dept_id", deptId);
+            cw.orderByDesc("created_time");
+            for (Copyright c : copyrightMapper.selectList(cw)) {
+                PendingApprovalVO vo = new PendingApprovalVO();
+                vo.setId(c.getId());
+                vo.setType("copyright");
+                vo.setTitle(c.getName());
+                vo.setSubmitTime(c.getCreatedTime());
+                vo.setCreatedBy(c.getCreatedBy());
+                vo.setDeptId(c.getDeptId());
+                allItems.add(vo);
+            }
+        }
+
+        // ── 3. Sort all items by submitTime descending ───────────────────
+        allItems.sort((a, b) -> {
+            if (a.getSubmitTime() == null && b.getSubmitTime() == null) return 0;
+            if (a.getSubmitTime() == null) return 1;
+            if (b.getSubmitTime() == null) return -1;
+            return b.getSubmitTime().compareTo(a.getSubmitTime());
+        });
+
+        // ── 4. Paginate ───────────────────────────────────────────────────
+        int total = allItems.size();
+        int fromIndex = (page - 1) * size;
+        int toIndex = Math.min(fromIndex + size, total);
+
+        List<PendingApprovalVO> pageItems;
+        if (fromIndex >= total) {
+            pageItems = Collections.emptyList();
+        } else {
+            pageItems = allItems.subList(fromIndex, toIndex);
+        }
+
+        // ── 5. Enrich with submitter name and department name ─────────────
+        Set<Long> userIds = pageItems.stream()
+                .map(PendingApprovalVO::getCreatedBy)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (!userIds.isEmpty()) {
+            Map<Long, String> userNameMap = sysUserMapper.selectBatchIds(userIds)
+                    .stream()
+                    .collect(Collectors.toMap(SysUser::getId, SysUser::getRealName,
+                            (a, b) -> a));
+            pageItems.forEach(vo ->
+                    vo.setSubmitterName(userNameMap.getOrDefault(vo.getCreatedBy(),
+                            "用户" + vo.getCreatedBy())));
+        } else {
+            pageItems.forEach(vo -> vo.setSubmitterName("用户" + vo.getCreatedBy()));
+        }
+
+        Set<Long> deptIds = pageItems.stream()
+                .map(PendingApprovalVO::getDeptId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (!deptIds.isEmpty()) {
+            Map<Long, String> deptNameMap = sysDepartmentMapper.selectBatchIds(deptIds)
+                    .stream()
+                    .collect(Collectors.toMap(SysDepartment::getId, SysDepartment::getDeptName,
+                            (a, b) -> a));
+            pageItems.forEach(vo ->
+                    vo.setDeptName(deptNameMap.getOrDefault(vo.getDeptId(),
+                            "部门" + vo.getDeptId())));
+        } else {
+            pageItems.forEach(vo -> vo.setDeptName(""));
+        }
+
+        // ── 6. Build and return paginated result ─────────────────────────
+        Page<PendingApprovalVO> result = new Page<>(page, size, total);
+        result.setRecords(pageItems);
+        return result;
     }
 
     /**

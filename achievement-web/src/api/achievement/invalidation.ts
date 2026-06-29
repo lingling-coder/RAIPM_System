@@ -56,10 +56,16 @@ export function getInvalidations() {
 
 /**
  * Check for duplicate achievement at submit time.
- * GET /api/achievement/check-duplicate?type=paper&field=10.1234/test
+ * GET /api/achievement/check-duplicate?type=paper&field=10.1234/test&excludeId=42
+ *
+ * @param type      achievement type (paper/patent/copyright)
+ * @param field     unique field value (DOI/applicationNo/registrationNo)
+ * @param excludeId optional current record ID to exclude (edit scenarios)
  */
-export function checkDuplicate(type: string, field: string) {
-  return http.get('/api/achievement/check-duplicate', {
-    params: { type, field },
-  })
+export function checkDuplicate(type: string, field: string, excludeId?: number) {
+  const params: Record<string, string | number> = { type, field }
+  if (excludeId !== undefined) {
+    params.excludeId = excludeId
+  }
+  return http.get('/api/achievement/check-duplicate', { params })
 }

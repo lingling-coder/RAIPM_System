@@ -110,6 +110,10 @@ http.interceptors.response.use(
     if (error.response) {
       const status = error.response.status
       switch (status) {
+        case 400:
+          // Show backend validation/business error message
+          ElMessage.error(error.response.data?.message || '请求参数错误')
+          break
         case 403:
           ElMessage.error('无权限访问')
           break

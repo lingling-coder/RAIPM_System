@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import * as dashboardApi from '@/api/dashboard'
 import type {
+  DashboardSummaryVO,
   DashboardTrendVO,
   DashboardTypeDistVO,
   DashboardDeptRankVO,
@@ -22,6 +23,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const typeDist = ref<DashboardTypeDistVO[]>([])
   const deptRanking = ref<DashboardDeptRankVO[]>([])
   const patentStatus = ref<DashboardPatentStatusVO[]>([])
+  const summary = ref<DashboardSummaryVO>({ totalUsers: 0, totalDepts: 0, totalRoles: 0 })
   const loading = ref(false)
   const error = ref<string | null>(null)
   const lastFetched = ref<number | null>(null)
@@ -44,16 +46,18 @@ export const useDashboardStore = defineStore('dashboard', () => {
     error.value = null
     try {
       const params = deptId !== undefined ? { deptId } : undefined
-      const [trendRes, typeRes, deptRes, patentRes] = await Promise.all([
+      const [trendRes, typeRes, deptRes, patentRes, summaryRes] = await Promise.all([
         dashboardApi.getAnnualTrend(params),
         dashboardApi.getTypeDist(params),
         dashboardApi.getDeptRanking(params),
         dashboardApi.getPatentStatus(params),
+        dashboardApi.getSummary(),
       ])
       annualTrend.value = (trendRes as any)?.data || []
       typeDist.value = (typeRes as any)?.data || []
       deptRanking.value = (deptRes as any)?.data || []
       patentStatus.value = (patentRes as any)?.data || []
+      summary.value = (summaryRes as any)?.data || { totalUsers: 0, totalDepts: 0, totalRoles: 0 }
       lastFetched.value = now
     } catch (e) {
       error.value = '数据加载失败'
@@ -86,6 +90,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     typeDist,
     deptRanking,
     patentStatus,
+    summary,
     loading,
     error,
     lastFetched,

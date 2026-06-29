@@ -29,13 +29,16 @@ class DoiAutoFillServiceTest {
     private OpenAlexClient openAlexClient;
 
     @Mock
+    private ChineseDoiClient chineseDoiClient;
+
+    @Mock
     private DoiSourcePriorityConfig priorityConfig;
 
     private DoiAutoFillService doiAutoFillService;
 
     @BeforeEach
     void setUp() {
-        doiAutoFillService = new DoiAutoFillService(crossrefClient, openAlexClient, priorityConfig);
+        doiAutoFillService = new DoiAutoFillService(crossrefClient, openAlexClient, chineseDoiClient, priorityConfig);
     }
 
     @Test
@@ -113,7 +116,7 @@ class DoiAutoFillServiceTest {
         when(openAlexClient.lookup(doi)).thenReturn(Optional.of(primaryResult));
 
         // Act
-        DoiAutoFillService service = new DoiAutoFillService(crossrefClient, openAlexClient, priorityConfig);
+        DoiAutoFillService service = new DoiAutoFillService(crossrefClient, openAlexClient, chineseDoiClient, priorityConfig);
         DoiLookupResult result = service.lookup(doi);
 
         // Assert

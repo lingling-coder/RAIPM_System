@@ -3,6 +3,7 @@ package com.institute.achievement.framework.dashboard.controller;
 import com.institute.achievement.common.util.Result;
 import com.institute.achievement.framework.dashboard.dto.DashboardDeptRankVO;
 import com.institute.achievement.framework.dashboard.dto.DashboardPatentStatusVO;
+import com.institute.achievement.framework.dashboard.dto.DashboardSummaryVO;
 import com.institute.achievement.framework.dashboard.dto.DashboardTrendVO;
 import com.institute.achievement.framework.dashboard.dto.DashboardTypeDistVO;
 import com.institute.achievement.framework.dashboard.service.DashboardService;
@@ -92,6 +93,17 @@ public class DashboardController {
             @RequestParam(required = false) Long deptId) {
         List<DashboardPatentStatusVO> status = dashboardService.getPatentStatus(deptId);
         return Result.success(status);
+    }
+
+    /**
+     * Get summary statistics: total active users, departments, and roles.
+     *
+     * @return summary VO with total counts
+     */
+    @GetMapping("/summary")
+    public Result<DashboardSummaryVO> getSummary() {
+        DashboardSummaryVO summary = dashboardService.getSummary();
+        return Result.success(summary);
     }
 
     /**

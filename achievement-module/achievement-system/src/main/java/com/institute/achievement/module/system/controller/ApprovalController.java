@@ -3,6 +3,7 @@ package com.institute.achievement.module.system.controller;
 import com.institute.achievement.framework.security.SecurityUtils;
 import com.institute.achievement.module.system.dto.ApprovalActionDTO;
 import com.institute.achievement.module.system.dto.ApprovalRecordVO;
+import com.institute.achievement.module.system.dto.PendingApprovalVO;
 import com.institute.achievement.module.system.entity.ApprovalRecord;
 import com.institute.achievement.module.system.service.ApprovalService;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -81,7 +82,7 @@ public class ApprovalController {
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String dateRange) {
         Long userId = SecurityUtils.getCurrentUserId();
-        Page<ApprovalRecord> result = approvalService.getPendingApprovals(userId, type, dateRange, page, size);
+        Page<PendingApprovalVO> result = approvalService.getPendingApprovals(userId, type, dateRange, page, size);
         return ResponseEntity.ok(Map.of(
                 "code", 200,
                 "data", Map.of("records", result.getRecords(), "total", result.getTotal(),

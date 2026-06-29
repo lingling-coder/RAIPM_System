@@ -28,9 +28,8 @@ public class SysRole implements Serializable {
     /** 1=normal, 0=disabled */
     private Integer status;
 
-    /** Soft delete flag */
-    @TableLogic
-    @TableField(select = false)
+    /** Soft delete flag: 1=deleted, 0=active */
+    @TableLogic(value = "0", delval = "1")
     private Integer deleted;
 
     @TableField(fill = FieldFill.INSERT)

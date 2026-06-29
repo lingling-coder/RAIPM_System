@@ -185,7 +185,7 @@ public class ClassifiedPermissionService {
     }
 
     private boolean hasClassifiedRole(Long userId) {
-        return SecurityUtils.hasRole("CLASSIFIED_MANAGER");
+        return SecurityUtils.hasRole("classified_admin");
     }
 
     private boolean isAttachmentUploader(Long attachmentId, Long userId) {

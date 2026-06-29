@@ -4,6 +4,7 @@ import com.alibaba.excel.EasyExcel;
 import com.institute.achievement.framework.dashboard.dto.DashboardDeptRankVO;
 import com.institute.achievement.framework.dashboard.dto.DashboardExportVO;
 import com.institute.achievement.framework.dashboard.dto.DashboardPatentStatusVO;
+import com.institute.achievement.framework.dashboard.dto.DashboardSummaryVO;
 import com.institute.achievement.framework.dashboard.dto.DashboardTrendVO;
 import com.institute.achievement.framework.dashboard.dto.DashboardTypeDistVO;
 import com.institute.achievement.framework.dashboard.mapper.DashboardMapper;
@@ -102,6 +103,15 @@ public class DashboardServiceImpl implements DashboardService {
         }
         log.debug("Dashboard patent status: {} rows", results.size());
         return results;
+    }
+
+    @Cacheable(value = "dashboard", key = "#root.methodName", unless = "#result == null")
+    @Override
+    public DashboardSummaryVO getSummary() {
+        DashboardSummaryVO summary = dashboardMapper.getSummary();
+        log.debug("Dashboard summary: {} users, {} depts, {} roles",
+                summary.getTotalUsers(), summary.getTotalDepts(), summary.getTotalRoles());
+        return summary;
     }
 
     @Override

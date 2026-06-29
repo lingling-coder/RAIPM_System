@@ -48,7 +48,7 @@ public class SearchServiceImpl implements SearchService {
         }
 
         // D-16 classified exclusion: non-CLASSIFIED_MANAGER users cannot see classified results
-        boolean isClassifiedManager = SecurityUtils.hasRole("CLASSIFIED_MANAGER");
+        boolean isClassifiedManager = SecurityUtils.hasRole("classified_admin");
         if (!isClassifiedManager) {
             query.setForceExcludeClassified(true);
             log.debug("User is not CLASSIFIED_MANAGER — classified results excluded (D-16)");

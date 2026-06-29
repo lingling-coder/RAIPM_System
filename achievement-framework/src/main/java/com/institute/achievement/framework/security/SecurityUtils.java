@@ -160,6 +160,14 @@ public final class SecurityUtils {
 
     /**
      * Check if the current user has a specific role.
+     * <p>
+     * Supports three matching strategies:
+     * <ol>
+     *   <li>Exact match against the raw role string</li>
+     *   <li>Exact match with {@code ROLE_} prefix added automatically if missing</li>
+     *   <li>Underscore-prefixed uppercase suffix match — e.g. {@code "secretary"}
+     *       matches {@code ROLE_DEPT_SECRETARY} via {@code _SECRETARY} suffix</li>
+     * </ol>
      *
      * @param role the role name (without ROLE_ prefix)
      * @return true if the user has the role
@@ -169,7 +177,17 @@ public final class SecurityUtils {
         if (roles == null) {
             return false;
         }
+        // Direct match
+        if (roles.contains(role)) {
+            return true;
+        }
+        // Match with ROLE_ prefix
         String roleWithPrefix = role.startsWith("ROLE_") ? role : "ROLE_" + role;
-        return roles.contains(role) || roles.contains(roleWithPrefix);
+        if (roles.contains(roleWithPrefix)) {
+            return true;
+        }
+        // Suffix match: e.g. "secretary" → "_SECRETARY" matches ROLE_DEPT_SECRETARY
+        String suffix = "_" + role.toUpperCase();
+        return roles.stream().anyMatch(r -> r.toUpperCase().endsWith(suffix));
     }
 }

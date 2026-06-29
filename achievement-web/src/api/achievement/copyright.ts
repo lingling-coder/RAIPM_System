@@ -43,9 +43,11 @@ export interface PageResult<T> {
 
 /**
  * Submit copyright for approval (DRAFT -> PENDING_DEPT_REVIEW)
+ *
+ * @param id copyright ID to submit (used as query param to match @RequestParam on backend)
  */
-export function submit(data: CopyrightFormDTO) {
-  return http.post('/api/copyrights/submit', data)
+export function submit(id: number) {
+  return http.post('/api/copyrights/submit', null, { params: { id } })
 }
 
 /**

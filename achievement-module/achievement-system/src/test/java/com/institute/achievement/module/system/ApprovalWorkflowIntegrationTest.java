@@ -9,6 +9,8 @@ import com.institute.achievement.framework.security.SecurityUtils;
 import com.institute.achievement.module.system.dto.ApprovalRecordVO;
 import com.institute.achievement.module.system.entity.ApprovalRecord;
 import com.institute.achievement.module.system.mapper.ApprovalRecordMapper;
+import com.institute.achievement.module.system.mapper.SysDepartmentMapper;
+import com.institute.achievement.module.system.mapper.SysUserMapper;
 import com.institute.achievement.module.system.service.ApprovalService;
 import com.institute.achievement.module.system.service.AuditLogService;
 import com.institute.achievement.module.system.service.NotificationService;
@@ -66,13 +68,17 @@ class ApprovalWorkflowIntegrationTest {
     private NotificationService notificationService;
     @Mock
     private AuditLogService auditLogService;
+    @Mock
+    private SysUserMapper sysUserMapper;
+    @Mock
+    private SysDepartmentMapper sysDepartmentMapper;
 
     private ApprovalService approvalService;
 
     @BeforeEach
     void setUp() {
         approvalService = new ApprovalService(paperMapper, patentMapper, copyrightMapper,
-                approvalRecordMapper, notificationService, auditLogService);
+                approvalRecordMapper, notificationService, auditLogService, sysUserMapper, sysDepartmentMapper);
     }
 
     // ── Helper Methods ─────────────────────────────────────────────────

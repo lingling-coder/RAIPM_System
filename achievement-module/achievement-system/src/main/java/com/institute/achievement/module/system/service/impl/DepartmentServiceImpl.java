@@ -48,7 +48,7 @@ public class DepartmentServiceImpl extends ServiceImpl<SysDepartmentMapper, SysD
     @Override
     public DepartmentVO getById(Long id) {
         SysDepartment dept = this.baseMapper.selectById(id);
-        if (dept == null || dept.getDeleted() == 1) {
+        if (dept == null || Integer.valueOf(1).equals(dept.getDeleted())) {
             throw new EntityNotFoundException("Department", id);
         }
         return toDepartmentVO(dept);
@@ -78,7 +78,7 @@ public class DepartmentServiceImpl extends ServiceImpl<SysDepartmentMapper, SysD
     @Transactional(rollbackFor = Exception.class)
     public void update(DepartmentUpdateDTO dto) {
         SysDepartment dept = this.baseMapper.selectById(dto.getId());
-        if (dept == null || dept.getDeleted() == 1) {
+        if (dept == null || Integer.valueOf(1).equals(dept.getDeleted())) {
             throw new EntityNotFoundException("Department", dto.getId());
         }
 
@@ -96,13 +96,15 @@ public class DepartmentServiceImpl extends ServiceImpl<SysDepartmentMapper, SysD
     @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
         SysDepartment dept = this.baseMapper.selectById(id);
-        if (dept == null || dept.getDeleted() == 1) {
+        if (dept == null || Integer.valueOf(1).equals(dept.getDeleted())) {
             throw new EntityNotFoundException("Department", id);
         }
 
-        // Check if users are assigned to this department
+        // Check if active (non-deleted) users are assigned to this department
         Long userCount = userMapper.selectCount(
-                new LambdaQueryWrapper<SysUser>().eq(SysUser::getDeptId, id)
+                new LambdaQueryWrapper<SysUser>()
+                        .eq(SysUser::getDeptId, id)
+                        .eq(SysUser::getDeleted, 0)
         );
         if (userCount > 0) {
             throw new BusinessException("Cannot delete department '" + dept.getDeptName()
@@ -134,9 +136,11 @@ public class DepartmentServiceImpl extends ServiceImpl<SysDepartmentMapper, SysD
         vo.setStatus(dept.getStatus());
         vo.setCreatedAt(dept.getCreatedAt());
 
-        // Count members
+        // Count active (non-deleted) members
         Long memberCount = userMapper.selectCount(
-                new LambdaQueryWrapper<SysUser>().eq(SysUser::getDeptId, dept.getId())
+                new LambdaQueryWrapper<SysUser>()
+                        .eq(SysUser::getDeptId, dept.getId())
+                        .eq(SysUser::getDeleted, 0)
         );
         vo.setMemberCount(memberCount.intValue());
 

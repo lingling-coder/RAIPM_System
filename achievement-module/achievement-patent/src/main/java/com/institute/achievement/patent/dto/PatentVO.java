@@ -48,6 +48,7 @@ public class PatentVO {
 
     private Long deptId;
     private Long createdBy;
+    private String submitterName;
     private LocalDateTime createdTime;
     private Long updatedBy;
     private LocalDateTime updatedTime;

@@ -2,6 +2,7 @@ package com.institute.achievement.framework.dashboard.service;
 
 import com.institute.achievement.framework.dashboard.dto.DashboardDeptRankVO;
 import com.institute.achievement.framework.dashboard.dto.DashboardPatentStatusVO;
+import com.institute.achievement.framework.dashboard.dto.DashboardSummaryVO;
 import com.institute.achievement.framework.dashboard.dto.DashboardTrendVO;
 import com.institute.achievement.framework.dashboard.dto.DashboardTypeDistVO;
 import jakarta.servlet.http.HttpServletResponse;
@@ -56,6 +57,13 @@ public interface DashboardService {
      * @return list of patent status data points with percentages computed
      */
     List<DashboardPatentStatusVO> getPatentStatus(Long deptId);
+
+    /**
+     * Get summary statistics: total active users, departments, and roles.
+     *
+     * @return summary VO with total counts
+     */
+    DashboardSummaryVO getSummary();
 
     /**
      * Export chart detail data to Excel via EasyExcel streaming.

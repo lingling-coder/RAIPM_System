@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.institute.achievement.common.enums.AchievementStatusEnum;
 import com.institute.achievement.common.exception.AchievementException;
 import com.institute.achievement.framework.security.SecurityUtils;
+import com.institute.achievement.common.service.INotificationService;
 import com.institute.achievement.paper.dto.PaperDTO;
 import com.institute.achievement.paper.dto.PaperVO;
 import com.institute.achievement.paper.entity.Paper;
@@ -17,6 +18,9 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -36,6 +40,8 @@ import java.util.stream.Collectors;
 public class PaperService {
 
     private final PaperMapper paperMapper;
+    private final INotificationService notificationService;
+
 
     /**
      * Create a new paper as DRAFT.
@@ -185,6 +191,17 @@ public class PaperService {
         List<PaperVO> voList = result.getRecords().stream()
                 .map(this::mapToVO)
                 .collect(Collectors.toList());
+
+        // Batch populate submitter names
+        Set<Long> userIds = voList.stream()
+                .map(PaperVO::getCreatedBy)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (!userIds.isEmpty()) {
+            Map<Long, String> nameMap = notificationService.resolveUserNames(userIds);
+            voList.forEach(vo -> vo.setSubmitterName(nameMap.get(vo.getCreatedBy())));
+        }
+
         voPage.setRecords(voList);
 
         return voPage;

@@ -51,9 +51,11 @@ export interface PageResult<T> {
 
 /**
  * Submit patent for approval (DRAFT -> PENDING_DEPT_REVIEW)
+ *
+ * @param id patent ID to submit (used as query param to match @RequestParam on backend)
  */
-export function submit(data: PatentFormDTO) {
-  return http.post('/api/patents/submit', data)
+export function submit(id: number) {
+  return http.post('/api/patents/submit', null, { params: { id } })
 }
 
 /**

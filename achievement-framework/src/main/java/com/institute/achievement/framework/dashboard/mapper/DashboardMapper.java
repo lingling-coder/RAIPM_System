@@ -3,6 +3,7 @@ package com.institute.achievement.framework.dashboard.mapper;
 import com.institute.achievement.framework.dashboard.dto.DashboardDeptRankVO;
 import com.institute.achievement.framework.dashboard.dto.DashboardExportVO;
 import com.institute.achievement.framework.dashboard.dto.DashboardPatentStatusVO;
+import com.institute.achievement.framework.dashboard.dto.DashboardSummaryVO;
 import com.institute.achievement.framework.dashboard.dto.DashboardTrendVO;
 import com.institute.achievement.framework.dashboard.dto.DashboardTypeDistVO;
 import com.institute.achievement.framework.permission.DataScope;
@@ -84,4 +85,11 @@ public interface DashboardMapper {
     List<DashboardExportVO> exportChartData(
             @Param("chartType") String chartType,
             @Param("deptId") Long deptId);
+
+    /**
+     * Get summary statistics (total users, departments, roles).
+     *
+     * @return summary VO with total counts
+     */
+    DashboardSummaryVO getSummary();
 }

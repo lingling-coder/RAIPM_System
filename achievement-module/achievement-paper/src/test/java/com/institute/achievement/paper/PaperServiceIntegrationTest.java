@@ -2,6 +2,7 @@ package com.institute.achievement.paper;
 
 import com.institute.achievement.common.enums.AchievementStatusEnum;
 import com.institute.achievement.common.exception.AchievementException;
+import com.institute.achievement.common.service.INotificationService;
 import com.institute.achievement.paper.dto.PaperDTO;
 import com.institute.achievement.paper.dto.PaperVO;
 import com.institute.achievement.paper.entity.Paper;
@@ -35,11 +36,14 @@ class PaperServiceIntegrationTest {
     @Mock
     private PaperMapper paperMapper;
 
+    @Mock
+    private INotificationService notificationService;
+
     private PaperService paperService;
 
     @BeforeEach
     void setUp() {
-        paperService = new PaperService(paperMapper);
+        paperService = new PaperService(paperMapper, notificationService);
     }
 
     @Test

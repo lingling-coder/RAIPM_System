@@ -2,6 +2,7 @@ package com.institute.achievement.copyright;
 
 import com.institute.achievement.common.enums.AchievementStatusEnum;
 import com.institute.achievement.common.exception.AchievementException;
+import com.institute.achievement.common.service.INotificationService;
 import com.institute.achievement.copyright.dto.CopyrightDTO;
 import com.institute.achievement.copyright.entity.Copyright;
 import com.institute.achievement.copyright.mapper.CopyrightMapper;
@@ -32,11 +33,14 @@ class CopyrightServiceTest {
     @Mock
     private CopyrightMapper copyrightMapper;
 
+    @Mock
+    private INotificationService notificationService;
+
     private CopyrightService copyrightService;
 
     @BeforeEach
     void setUp() {
-        copyrightService = new CopyrightService(copyrightMapper);
+        copyrightService = new CopyrightService(copyrightMapper, notificationService);
     }
 
     // ── createCopyright ───────────────────────────────────────────────────

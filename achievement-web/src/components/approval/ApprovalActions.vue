@@ -3,29 +3,30 @@
     <!-- Section Header -->
     <h3 class="section-header">审批操作</h3>
 
-    <!-- Pass Button -->
-    <el-button
-      type="primary"
-      size="large"
-      :loading="loading"
-      :disabled="loading"
-      class="action-btn"
-      @click="handlePass"
-    >
-      通过
-    </el-button>
+    <!-- Pass / Reject Button Row -->
+    <div class="action-row">
+      <el-button
+        type="primary"
+        size="large"
+        :loading="loading"
+        :disabled="loading"
+        class="action-btn action-btn-half"
+        @click="handlePass"
+      >
+        通过
+      </el-button>
 
-    <!-- Reject Button -->
-    <el-button
-      type="danger"
-      size="large"
-      :loading="loading"
-      :disabled="loading"
-      class="action-btn"
-      @click="showRejectInput = !showRejectInput"
-    >
-      退回
-    </el-button>
+      <el-button
+        type="danger"
+        size="large"
+        :loading="loading"
+        :disabled="loading"
+        class="action-btn action-btn-half"
+        @click="showRejectInput = !showRejectInput"
+      >
+        退回
+      </el-button>
+    </div>
 
     <!-- Reject Reason Input (shown when reject clicked) -->
     <div v-if="showRejectInput" class="reject-section">
@@ -199,9 +200,17 @@ async function handleArchive() {
   margin: 0 0 16px 0;
 }
 
+.action-row {
+  display: flex;
+  gap: 12px;
+}
+
 .action-btn {
-  width: 100%;
   margin-bottom: 12px;
+}
+
+.action-btn-half {
+  flex: 1;
 }
 
 .full-width {

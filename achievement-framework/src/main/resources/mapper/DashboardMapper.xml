@@ -156,32 +156,29 @@
          VALID (授权), INVALID (终止/无效/驳回), UNKNOWN (all other statuses).
     -->
     <select id="getPatentStatus" resultType="com.institute.achievement.framework.dashboard.dto.DashboardPatentStatusVO">
-        SELECT
-            CASE
-                WHEN pat.legal_status = '授权' THEN 'VALID'
-                WHEN pat.legal_status IN ('终止', '无效', '驳回') THEN 'INVALID'
-                ELSE 'UNKNOWN'
-            END AS status,
-            CASE
-                WHEN pat.legal_status = '授权' THEN '有效'
-                WHEN pat.legal_status IN ('终止', '无效', '驳回') THEN '无效'
-                ELSE '未知'
-            END AS label,
-            COUNT(*) AS count
-        FROM patent pat
-        WHERE pat.status NOT IN ('DRAFT')
-        <include refid="deptWhereClause"/>
-        GROUP BY
-            CASE
-                WHEN pat.legal_status = '授权' THEN 'VALID'
-                WHEN pat.legal_status IN ('终止', '无效', '驳回') THEN 'INVALID'
-                ELSE 'UNKNOWN'
-            END,
-            CASE
-                WHEN pat.legal_status = '授权' THEN '有效'
-                WHEN pat.legal_status IN ('终止', '无效', '驳回') THEN '无效'
-                ELSE '未知'
-            END
+        SELECT t.status AS status, t.label AS label, COUNT(*) AS count
+        FROM (
+            SELECT
+                CASE
+                    WHEN pat.legal_status = '授权' THEN 'VALID'
+                    WHEN pat.legal_status IN ('终止', '无效', '驳回') THEN 'INVALID'
+                    ELSE 'UNKNOWN'
+                END AS status,
+                CASE
+                    WHEN pat.legal_status = '授权' THEN '有效'
+                    WHEN pat.legal_status IN ('终止', '无效', '驳回') THEN '无效'
+                    ELSE '未知'
+                END AS label,
+                pat.dept_id
+            FROM patent pat
+            WHERE pat.status NOT IN ('DRAFT')
+        ) t
+        <where>
+            <if test="deptId != null">
+                AND t.dept_id = #{deptId}
+            </if>
+        </where>
+        GROUP BY t.status, t.label
         ORDER BY count DESC
     </select>
 
@@ -336,6 +333,18 @@
                 WHERE 1 = 0
             </otherwise>
         </choose>
+    </select>
+
+    <!-- ── Summary Statistics ────────────────────────────────────────────
+
+         Returns total counts of active (deleted=0) users, departments, and
+         roles for the homepage stat cards.
+    -->
+    <select id="getSummary" resultType="com.institute.achievement.framework.dashboard.dto.DashboardSummaryVO">
+        SELECT
+            (SELECT COUNT(*) FROM sys_user WHERE deleted = 0) AS totalUsers,
+            (SELECT COUNT(*) FROM sys_department WHERE deleted = 0) AS totalDepts,
+            (SELECT COUNT(*) FROM sys_role WHERE deleted = 0) AS totalRoles
     </select>
 
 </mapper>

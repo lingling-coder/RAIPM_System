@@ -232,7 +232,7 @@ class AchievementLifecycleIntegrationTest {
         when(paperMapper.selectOne(any())).thenReturn(existing);
 
         // Check duplicate via DuplicateCheckService
-        DuplicateCheckResult result = duplicateCheckService.checkDuplicateForSubmit("paper", "10.1234/dup-doi");
+        DuplicateCheckResult result = duplicateCheckService.checkDuplicateForSubmit("paper", "10.1234/dup-doi", null);
         assertThat(result).isNotNull();
         assertThat(result.isDuplicate()).isTrue();
         assertThat(result.getExistingId()).isEqualTo(1L);
@@ -250,7 +250,7 @@ class AchievementLifecycleIntegrationTest {
 
         when(patentMapper.selectOne(any())).thenReturn(existing);
 
-        DuplicateCheckResult result = duplicateCheckService.checkDuplicateForSubmit("patent", "CN202410000001");
+        DuplicateCheckResult result = duplicateCheckService.checkDuplicateForSubmit("patent", "CN202410000001", null);
         assertThat(result).isNotNull();
         assertThat(result.isDuplicate()).isTrue();
         assertThat(result.getExistingId()).isEqualTo(1L);
@@ -267,7 +267,7 @@ class AchievementLifecycleIntegrationTest {
 
         when(copyrightMapper.selectOne(any())).thenReturn(existing);
 
-        DuplicateCheckResult result = duplicateCheckService.checkDuplicateForSubmit("copyright", "2026SR000001");
+        DuplicateCheckResult result = duplicateCheckService.checkDuplicateForSubmit("copyright", "2026SR000001", null);
         assertThat(result).isNotNull();
         assertThat(result.isDuplicate()).isTrue();
         assertThat(result.getExistingId()).isEqualTo(1L);
@@ -280,10 +280,10 @@ class AchievementLifecycleIntegrationTest {
     @Test
     void testDuplicateDetection_nullFieldReturnsNoDuplicate() {
         // Null DOI for paper should return no duplicate (D-47 style)
-        DuplicateCheckResult result = duplicateCheckService.checkDuplicateForSubmit("paper", null);
+        DuplicateCheckResult result = duplicateCheckService.checkDuplicateForSubmit("paper", null, null);
         assertThat(result.isDuplicate()).isFalse();
 
-        result = duplicateCheckService.checkDuplicateForSubmit("paper", "");
+        result = duplicateCheckService.checkDuplicateForSubmit("paper", "", null);
         assertThat(result.isDuplicate()).isFalse();
     }
 

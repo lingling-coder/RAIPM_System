@@ -24,7 +24,6 @@
             <code class="role-code">{{ row.roleCode }}</code>
           </template>
         </el-table-column>
-        <el-table-column prop="description" label="Description" min-width="200" show-overflow-tooltip />
         <el-table-column prop="userCount" label="Users" width="80" align="center" />
         <el-table-column prop="status" label="Status" width="90">
           <template #default="{ row }">

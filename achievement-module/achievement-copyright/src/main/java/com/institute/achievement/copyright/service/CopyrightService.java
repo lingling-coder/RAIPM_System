@@ -9,6 +9,7 @@ import com.institute.achievement.copyright.dto.CopyrightVO;
 import com.institute.achievement.copyright.entity.Copyright;
 import com.institute.achievement.copyright.mapper.CopyrightMapper;
 import com.institute.achievement.framework.security.SecurityUtils;
+import com.institute.achievement.common.service.INotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,9 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -36,6 +40,8 @@ import java.util.stream.Collectors;
 public class CopyrightService {
 
     private final CopyrightMapper copyrightMapper;
+    private final INotificationService notificationService;
+
 
     /**
      * Create a new copyright as DRAFT.
@@ -185,6 +191,17 @@ public class CopyrightService {
         List<CopyrightVO> voList = result.getRecords().stream()
                 .map(this::mapToVO)
                 .collect(Collectors.toList());
+
+        // Batch populate submitter names
+        Set<Long> userIds = voList.stream()
+                .map(CopyrightVO::getCreatedBy)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (!userIds.isEmpty()) {
+            Map<Long, String> nameMap = notificationService.resolveUserNames(userIds);
+            voList.forEach(vo -> vo.setSubmitterName(nameMap.get(vo.getCreatedBy())));
+        }
+
         voPage.setRecords(voList);
 
         return voPage;

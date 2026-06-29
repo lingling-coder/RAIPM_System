@@ -22,24 +22,24 @@
           <template #title>首页</template>
         </el-menu-item>
 
-        <!-- Achievement Management Submenu -->
-        <el-sub-menu index="/achievement">
+        <!-- Achievement Management Submenu (permission-based) -->
+        <el-sub-menu v-if="hasAchievementPermission" index="/achievement">
           <template #title>
             <el-icon><Document /></el-icon>
             <span>成果管理</span>
           </template>
-          <el-menu-item index="/achievement/register">
+          <el-menu-item v-if="userStore.hasPermission('achievement:register')" index="/achievement/register">
             <el-icon><Edit /></el-icon>
             <template #title>成果登记</template>
           </el-menu-item>
-          <el-menu-item index="/achievement/list">
+          <el-menu-item v-if="userStore.hasPermission('achievement:list')" index="/achievement/list">
             <el-icon><List /></el-icon>
             <template #title>成果列表</template>
           </el-menu-item>
         </el-sub-menu>
 
-        <!-- Approval Management Submenu -->
-        <el-sub-menu index="/approval">
+        <!-- Approval Management Submenu (permission-based: approval:pending) -->
+        <el-sub-menu v-if="userStore.hasPermission('approval:pending')" index="/approval">
           <template #title>
             <el-icon><Check /></el-icon>
             <span>审批管理</span>
@@ -49,6 +49,29 @@
             <template #title>审批待办</template>
           </el-menu-item>
         </el-sub-menu>
+
+        <!-- Fee Management Submenu (permission-based) -->
+        <el-sub-menu v-if="hasFeePermission" index="/fee">
+          <template #title>
+            <el-icon><Money /></el-icon>
+            <span>费用管理</span>
+          </template>
+          <el-menu-item v-if="userStore.hasPermission('fee:ledger')" index="/fee/ledger">
+            <template #title>费用台账</template>
+          </el-menu-item>
+          <el-menu-item v-if="userStore.hasPermission('fee:plan')" index="/fee/plan">
+            <template #title>缴费计划</template>
+          </el-menu-item>
+          <el-menu-item v-if="userStore.hasPermission('fee:stats')" index="/fee/stats">
+            <template #title>费用统计</template>
+          </el-menu-item>
+        </el-sub-menu>
+
+        <!-- Batch Import (permission-based) -->
+        <el-menu-item v-if="userStore.hasPermission('achievement:batch-import')" index="/batch-import">
+          <el-icon><Upload /></el-icon>
+          <template #title>批量导入</template>
+        </el-menu-item>
 
         <!-- System Management Submenu (filtered by RBAC per D-07) -->
         <el-sub-menu v-if="hasSystemPermission" index="/system">
@@ -146,6 +169,8 @@ import {
   List,
   Check,
   Clock,
+  Money,
+  Upload,
   Fold,
   Expand,
   UserFilled,
@@ -197,6 +222,19 @@ const displayName = computed(() => {
 // Check if user has any system management permission
 const hasSystemPermission = computed(() => {
   return systemMenuItemsFull.some(item => userStore.hasPermission(item.permission))
+})
+
+// Achievement management: visible if user has any achievement sub-permission
+const hasAchievementPermission = computed(() => {
+  return userStore.hasPermission('achievement:register') ||
+         userStore.hasPermission('achievement:list')
+})
+
+// Fee management: visible if user has any fee sub-permission
+const hasFeePermission = computed(() => {
+  return userStore.hasPermission('fee:ledger') ||
+         userStore.hasPermission('fee:plan') ||
+         userStore.hasPermission('fee:stats')
 })
 
 // Filtered system menu items based on user permissions (RBAC D-07)

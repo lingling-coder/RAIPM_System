@@ -44,16 +44,20 @@ public class DuplicateCheckService {
     /**
      * Find an existing paper with the same DOI (excluding INVALIDATED status).
      *
-     * @param doi the DOI to check
+     * @param doi       the DOI to check
+     * @param excludeId optional paper ID to exclude (for edit/update scenarios)
      * @return Optional containing the existing paper, or empty if none found
      */
-    public Optional<Paper> findExistingByDoi(String doi) {
+    public Optional<Paper> findExistingByDoi(String doi, Long excludeId) {
         if (!StringUtils.hasText(doi)) {
             return Optional.empty();
         }
         LambdaQueryWrapper<Paper> wrapper = new LambdaQueryWrapper<Paper>()
                 .eq(Paper::getDoi, doi)
                 .ne(Paper::getStatus, AchievementStatusEnum.INVALIDATED.name());
+        if (excludeId != null) {
+            wrapper.ne(Paper::getId, excludeId);
+        }
         return Optional.ofNullable(paperMapper.selectOne(wrapper));
     }
 
@@ -63,15 +67,19 @@ public class DuplicateCheckService {
      * Find an existing patent with the same application number (excluding INVALIDATED).
      *
      * @param applicationNo the application number to check
+     * @param excludeId     optional patent ID to exclude (for edit/update scenarios)
      * @return Optional containing the existing patent, or empty if none found
      */
-    public Optional<Patent> findExistingByApplicationNo(String applicationNo) {
+    public Optional<Patent> findExistingByApplicationNo(String applicationNo, Long excludeId) {
         if (!StringUtils.hasText(applicationNo)) {
             return Optional.empty();
         }
         LambdaQueryWrapper<Patent> wrapper = new LambdaQueryWrapper<Patent>()
                 .eq(Patent::getApplicationNo, applicationNo)
                 .ne(Patent::getStatus, AchievementStatusEnum.INVALIDATED.name());
+        if (excludeId != null) {
+            wrapper.ne(Patent::getId, excludeId);
+        }
         return Optional.ofNullable(patentMapper.selectOne(wrapper));
     }
 
@@ -81,15 +89,19 @@ public class DuplicateCheckService {
      * Find an existing copyright with the same registration number (excluding INVALIDATED).
      *
      * @param registrationNo the registration number to check
+     * @param excludeId      optional copyright ID to exclude (for edit/update scenarios)
      * @return Optional containing the existing copyright, or empty if none found
      */
-    public Optional<Copyright> findExistingByRegistrationNo(String registrationNo) {
+    public Optional<Copyright> findExistingByRegistrationNo(String registrationNo, Long excludeId) {
         if (!StringUtils.hasText(registrationNo)) {
             return Optional.empty();
         }
         LambdaQueryWrapper<Copyright> wrapper = new LambdaQueryWrapper<Copyright>()
                 .eq(Copyright::getRegistrationNo, registrationNo)
                 .ne(Copyright::getStatus, AchievementStatusEnum.INVALIDATED.name());
+        if (excludeId != null) {
+            wrapper.ne(Copyright::getId, excludeId);
+        }
         return Optional.ofNullable(copyrightMapper.selectOne(wrapper));
     }
 
@@ -106,26 +118,27 @@ public class DuplicateCheckService {
      *
      * @param achievementType paper/patent/copyright
      * @param uniqueField     the unique field value (DOI/applicationNo/registrationNo)
+     * @param excludeId       optional achievement ID to exclude (for edit scenarios)
      * @return DuplicateCheckResult with existing achievement details if duplicate found
      */
-    public DuplicateCheckResult checkDuplicateForSubmit(String achievementType, String uniqueField) {
+    public DuplicateCheckResult checkDuplicateForSubmit(String achievementType, String uniqueField, Long excludeId) {
         // D-47: No unique field means no duplicate check possible
         if (!StringUtils.hasText(uniqueField)) {
             return DuplicateCheckResult.noDuplicate();
         }
 
         return switch (achievementType.toLowerCase()) {
-            case "paper" -> checkPaperDuplicate(uniqueField);
-            case "patent" -> checkPatentDuplicate(uniqueField);
-            case "copyright" -> checkCopyrightDuplicate(uniqueField);
+            case "paper" -> checkPaperDuplicate(uniqueField, excludeId);
+            case "patent" -> checkPatentDuplicate(uniqueField, excludeId);
+            case "copyright" -> checkCopyrightDuplicate(uniqueField, excludeId);
             default -> DuplicateCheckResult.noDuplicate();
         };
     }
 
     // ── Internal ───────────────────────────────────────────────────────
 
-    private DuplicateCheckResult checkPaperDuplicate(String doi) {
-        Optional<Paper> existing = findExistingByDoi(doi);
+    private DuplicateCheckResult checkPaperDuplicate(String doi, Long excludeId) {
+        Optional<Paper> existing = findExistingByDoi(doi, excludeId);
         if (existing.isEmpty()) {
             return DuplicateCheckResult.noDuplicate();
         }
@@ -141,8 +154,8 @@ public class DuplicateCheckService {
                 .build();
     }
 
-    private DuplicateCheckResult checkPatentDuplicate(String applicationNo) {
-        Optional<Patent> existing = findExistingByApplicationNo(applicationNo);
+    private DuplicateCheckResult checkPatentDuplicate(String applicationNo, Long excludeId) {
+        Optional<Patent> existing = findExistingByApplicationNo(applicationNo, excludeId);
         if (existing.isEmpty()) {
             return DuplicateCheckResult.noDuplicate();
         }
@@ -158,8 +171,8 @@ public class DuplicateCheckService {
                 .build();
     }
 
-    private DuplicateCheckResult checkCopyrightDuplicate(String registrationNo) {
-        Optional<Copyright> existing = findExistingByRegistrationNo(registrationNo);
+    private DuplicateCheckResult checkCopyrightDuplicate(String registrationNo, Long excludeId) {
+        Optional<Copyright> existing = findExistingByRegistrationNo(registrationNo, excludeId);
         if (existing.isEmpty()) {
             return DuplicateCheckResult.noDuplicate();
         }

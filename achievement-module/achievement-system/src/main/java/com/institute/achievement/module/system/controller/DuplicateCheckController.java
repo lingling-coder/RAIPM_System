@@ -27,15 +27,18 @@ public class DuplicateCheckController {
 
     /**
      * Check for duplicate achievement at submit time.
-     * GET /api/achievement/check-duplicate?type=paper&field=10.1234/test
+     * GET /api/achievement/check-duplicate?type=paper&field=10.1234/test&excludeId=42
      * <p>
      * Returns DuplicateCheckResult with existing achievement info if duplicate found.
+     * The optional excludeId parameter excludes the current record from the check
+     * (used when editing an existing draft to avoid self-duplicate detection).
      */
     @GetMapping("/check-duplicate")
     public ResponseEntity<Map<String, Object>> checkDuplicate(
             @RequestParam String type,
-            @RequestParam String field) {
-        DuplicateCheckResult result = duplicateCheckService.checkDuplicateForSubmit(type, field);
+            @RequestParam String field,
+            @RequestParam(required = false) Long excludeId) {
+        DuplicateCheckResult result = duplicateCheckService.checkDuplicateForSubmit(type, field, excludeId);
         return ResponseEntity.ok(Map.of("code", 200, "data", result));
     }
 }

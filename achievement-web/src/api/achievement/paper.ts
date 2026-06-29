@@ -70,9 +70,11 @@ export interface PageResult<T> {
 
 /**
  * Submit paper for approval (DRAFT -> PENDING_DEPT_REVIEW)
+ *
+ * @param id paper ID to submit (used as query param to match @RequestParam on backend)
  */
-export function submit(data: PaperFormDTO) {
-  return http.post('/api/papers/submit', data)
+export function submit(id: number) {
+  return http.post('/api/papers/submit', null, { params: { id } })
 }
 
 /**

@@ -100,6 +100,7 @@ import * as paperApi from '@/api/achievement/paper'
 import * as patentApi from '@/api/achievement/patent'
 import * as copyrightApi from '@/api/achievement/copyright'
 import * as invalidationApi from '@/api/achievement/invalidation'
+import * as approvalApi from '@/api/approval'
 import type { PaperFormDTO, DoiLookupResult } from '@/api/achievement/paper'
 import type { DuplicateCheckResult } from '@/api/achievement/invalidation'
 import PaperForm from '@/components/achievement/PaperForm.vue'
@@ -253,7 +254,7 @@ async function checkDuplicateBeforeSubmit(): Promise<boolean> {
 
   try {
     duplicateFieldLabel.value = label
-    const res: any = await invalidationApi.checkDuplicate(activeType.value, uniqueField)
+    const res: any = await invalidationApi.checkDuplicate(activeType.value, uniqueField, store.currentDraftId ?? undefined)
     if (res?.data?.duplicate) {
       // D-46: Show duplicate dialog
       duplicateCheckData.value = res.data
@@ -270,6 +271,10 @@ async function checkDuplicateBeforeSubmit(): Promise<boolean> {
 
 /**
  * Handle the actual form submission after all checks pass.
+ *
+ * The submit endpoint (@RequestParam Long id) requires an existing record ID.
+ * - If a draft is being edited (currentDraftId is set), submit directly by that ID.
+ * - For a first-time submit (no draft yet), auto-save as draft first, then submit.
  */
 async function doSubmit() {
   if (!formRef.value || !store.formData) return
@@ -279,17 +284,19 @@ async function doSubmit() {
 
   submitting.value = true
   try {
-    const apiMap: Record<string, any> = {
-      paper: paperApi.submit,
-      patent: patentApi.submit,
-      copyright: copyrightApi.submit,
+    // Ensure we have a draft ID before submitting
+    let achievementId = store.currentDraftId
+    if (!achievementId) {
+      // First-time submit: save as draft first to get an ID
+      await store.saveDraft()
+      achievementId = store.currentDraftId
+      if (!achievementId) {
+        ElMessage.error('保存草稿失败，无法提交')
+        return
+      }
     }
-    const submitApi = apiMap[activeType.value]
-    if (!submitApi) {
-      ElMessage.error('未知的成果类型')
-      return
-    }
-    const res: any = await submitApi(store.formData)
+
+    const res: any = await approvalApi.submit(activeType.value, achievementId)
     if (res?.code === 200 || res?.data) {
       ElMessage.success('提交成功！成果已进入审批流程')
       store.resetForm()

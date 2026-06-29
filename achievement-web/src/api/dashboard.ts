@@ -41,6 +41,15 @@ export interface DashboardPatentStatusVO {
 }
 
 /**
+ * Dashboard summary statistics.
+ */
+export interface DashboardSummaryVO {
+  totalUsers: number
+  totalDepts: number
+  totalRoles: number
+}
+
+/**
  * Get annual trend data.
  */
 export function getAnnualTrend(params?: { deptId?: number; yearFrom?: number; yearTo?: number }) {
@@ -66,6 +75,13 @@ export function getDeptRanking(params?: { deptId?: number }) {
  */
 export function getPatentStatus(params?: { deptId?: number }) {
   return http.get('/api/dashboard/patent-status', { params })
+}
+
+/**
+ * Get summary statistics: total users, departments, roles.
+ */
+export function getSummary() {
+  return http.get('/api/dashboard/summary')
 }
 
 /**

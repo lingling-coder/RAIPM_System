@@ -35,8 +35,7 @@ public class SysUser implements Serializable {
     private Integer status;
 
     /** Soft delete flag: 1=deleted, 0=active */
-    @TableLogic
-    @TableField(select = false)
+    @TableLogic(value = "0", delval = "1")
     private Integer deleted;
 
     /** Account lockout expiration timestamp (null = not locked) */
