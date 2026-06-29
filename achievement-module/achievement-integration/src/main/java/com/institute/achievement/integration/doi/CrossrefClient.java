@@ -13,6 +13,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -71,6 +73,88 @@ public class CrossrefClient {
             log.warn("Crossref lookup failed for DOI {}: {}", doi, e.getMessage());
             return Optional.empty();
         }
+    }
+
+    // ── Search by Title + Author (D-REQ: intelligent matching) ──────────
+
+    private static final String SEARCH_API = "https://api.crossref.org/works";
+
+    /**
+     * Search Crossref by title and optional authors, returning up to {@code rows} candidates.
+     * <p>
+     * The query is constructed as: {@code query=title + " " + authors}.
+     * Crossref scores results by relevance; the top N are returned.
+     *
+     * @param title   paper title (required, used as primary query)
+     * @param authors optional author names to refine the query
+     * @param rows    max results to return (suggested: 5)
+     * @return list of DoiLookupResult candidates (empty if none found)
+     */
+    public List<DoiLookupResult> searchByTitle(String title, String authors, int rows) {
+        try {
+            StringBuilder query = new StringBuilder(title.trim());
+            if (authors != null && !authors.trim().isEmpty()) {
+                query.append(" ").append(authors.trim());
+            }
+            String encodedQuery = URLEncoder.encode(query.toString(), StandardCharsets.UTF_8);
+            String url = SEARCH_API + "?query=" + encodedQuery + "&rows=" + rows + "&mailto=admin@institute.cn";
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(TIMEOUT)
+                    .header("Accept", "application/json")
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request,
+                    HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                log.warn("Crossref search returned status {} for query: {}", response.statusCode(), query);
+                return List.of();
+            }
+
+            return parseSearchResponse(response.body());
+
+        } catch (Exception e) {
+            log.warn("Crossref search failed for query '{}': {}", title, e.getMessage());
+            return List.of();
+        }
+    }
+
+    /**
+     * Parse Crossref search response (list of works) into DoiLookupResult list.
+     */
+    private List<DoiLookupResult> parseSearchResponse(String jsonBody) {
+        List<DoiLookupResult> results = new ArrayList<>();
+        try {
+            JsonNode root = objectMapper.readTree(jsonBody);
+            JsonNode items = root.path("message").path("items");
+
+            if (items.isArray()) {
+                int rank = 0;
+                for (JsonNode item : items) {
+                    if (rank >= 10) break; // Safety cap
+                    String doi = item.path("DOI").asText(null);
+                    if (doi == null || doi.isEmpty()) {
+                        rank++;
+                        continue;
+                    }
+                    // Reuse single-work parsing: wrap item in a fake message envelope
+                    String fakeResponse = objectMapper.createObjectNode()
+                            .set("message", item)
+                            .toString();
+                    DoiLookupResult result = parseResponse(fakeResponse, doi);
+                    if (result.isFound()) {
+                        results.add(result);
+                    }
+                    rank++;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to parse Crossref search response: {}", e.getMessage());
+        }
+        return results;
     }
 
     /**

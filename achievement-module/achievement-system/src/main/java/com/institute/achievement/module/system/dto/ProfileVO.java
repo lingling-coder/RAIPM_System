@@ -26,6 +26,8 @@ public class ProfileVO {
     private Long deptId;
     private String deptName;
     private List<String> roleNames;
+    private List<String> roles;
+    private List<String> permissions;
     private String lastLoginIp;
     private LocalDateTime lastLoginTime;
     private boolean passwordChangeRequired;

@@ -36,25 +36,27 @@
         @doi-ready="onDoiReady"
       />
 
-      <el-divider />
+      <el-divider v-if="store.formData" />
 
       <!-- Common fields -->
-      <el-form-item label="涉密标记">
-        <el-switch v-model="isClassified" />
-        <el-select
-          v-if="isClassified"
-          v-model="store.formData.classifiedLevel"
-          placeholder="请选择密级"
-          style="width: 150px; margin-left: 12px"
-        >
-          <el-option label="秘密" value="秘密" />
-          <el-option label="机密" value="机密" />
-        </el-select>
-      </el-form-item>
+      <template v-if="store.formData">
+        <el-form-item label="涉密标记">
+          <el-switch v-model="isClassified" />
+          <el-select
+            v-if="isClassified"
+            v-model="store.formData.classifiedLevel"
+            placeholder="请选择密级"
+            style="width: 150px; margin-left: 12px"
+          >
+            <el-option label="秘密" value="秘密" />
+            <el-option label="机密" value="机密" />
+          </el-select>
+        </el-form-item>
 
-      <el-form-item label="所属课题">
-        <el-input v-model="store.formData.projectRef" placeholder="请输入课题名称/编号（自由文本）" />
-      </el-form-item>
+        <el-form-item label="所属课题">
+          <el-input v-model="store.formData.projectRef" placeholder="请输入课题名称/编号（自由文本）" />
+        </el-form-item>
+      </template>
 
       <!-- Attachment upload -->
       <el-form-item label="附件">
@@ -168,7 +170,7 @@ const formRules = {
 
 // ── Type Switch (D-01) ────────────────────────────────────────────
 
-async function onTypeChange(newType: string) {
+async function onTypeChange(newType: any) {
   if (store.currentDraftId) {
     try {
       await ElMessageBox.confirm(

@@ -137,8 +137,8 @@ function typeLabel(row: any): string {
 
 // ── Status tag type mapping ───────────────────────────────────────
 
-function statusTagType(status: string): string {
-  const map: Record<string, string> = {
+function statusTagType(status: string): "primary" | "success" | "warning" | "info" | "danger" | undefined {
+  const map: Record<string, "primary" | "success" | "warning" | "info" | "danger"> = {
     DRAFT: 'info',
     PENDING_DEPT_REVIEW: 'warning',
     PENDING_ADMIN_ARCHIVE: 'primary',
@@ -183,8 +183,7 @@ async function fetchData() {
       size: pageSize.value,
       status: statusMap[activeTab.value],
       keyword: filters.keyword || undefined,
-      dateRange: filters.dateRange || undefined,
-    })
+    } as any)
 
     if (res?.data) {
       tableData.value = res.data.records || []

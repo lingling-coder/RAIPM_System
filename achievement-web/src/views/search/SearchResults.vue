@@ -28,7 +28,6 @@
         @change="fetchResults"
         style="width: 150px;"
       >
-        <el-option label="全部部门" :value="null" />
         <el-option
           v-for="d in departments"
           :key="d.id"
@@ -185,7 +184,7 @@ async function fetchResults() {
   try {
     const params = {
       keyword,
-      type: filters.type || undefined,
+      type: (filters.type || undefined) as 'paper' | 'patent' | 'software' | undefined,
       deptId: filters.deptId ?? undefined,
       yearFrom: filters.yearFrom ?? undefined,
       yearTo: filters.yearTo ?? undefined,
@@ -245,13 +244,13 @@ function typeLabel(type: string): string {
   return map[type] || type
 }
 
-function typeTagType(type: string): '' | 'success' | 'warning' | 'info' | 'danger' {
-  const map: Record<string, '' | 'success' | 'warning'> = {
-    paper: '',
+function typeTagType(type: string): 'primary' | 'success' | 'warning' | 'info' | 'danger' | undefined {
+  const map: Record<string, 'primary' | 'success' | 'warning' | undefined> = {
+    paper: undefined,
     patent: 'success',
     software: 'warning',
   }
-  return map[type] || ''
+  return map[type]
 }
 
 function statusLabel(status: string): string {
@@ -270,8 +269,8 @@ function statusLabel(status: string): string {
   return map[status] || status
 }
 
-function statusTagType(status: string): '' | 'success' | 'warning' | 'info' | 'danger' {
-  const map: Record<string, '' | 'success' | 'warning' | 'info' | 'danger'> = {
+function statusTagType(status: string): 'success' | 'warning' | 'info' | 'danger' | undefined {
+  const map: Record<string, 'success' | 'warning' | 'info' | 'danger'> = {
     DRAFT: 'info',
     PENDING: 'warning',
     APPROVED: 'success',

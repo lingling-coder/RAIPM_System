@@ -1,7 +1,24 @@
 <template>
   <div class="paper-form">
     <el-form-item label="论文标题" prop="title" :rules="titleRules">
-      <el-input v-model="form.title" placeholder="请输入论文标题" maxlength="500" show-word-limit />
+      <div class="title-search-row">
+        <el-input v-model="form.title" placeholder="请输入论文标题" maxlength="500" show-word-limit class="title-input" />
+        <el-button
+          type="primary"
+          plain
+          :loading="searchLoading"
+          :disabled="!form.title"
+          @click="triggerSearch"
+          class="smart-match-btn"
+        >
+          <el-icon><Search /></el-icon>
+          智能匹配
+        </el-button>
+      </div>
+      <div class="smart-match-tip">
+        <el-icon><InfoFilled /></el-icon>
+        <span>智能匹配会搜索 CrossRef 和 OpenAlex 学术数据库。建议同时填写标题和<strong>至少一位作者</strong>以获得更精确的结果。中文知网论文请将 DOI 粘贴到下方 DOI 字段自动补全。</span>
+      </div>
     </el-form-item>
 
     <el-form-item label="作者" prop="authors" :rules="authorsRules">
@@ -85,13 +102,25 @@
         show-word-limit
       />
     </el-form-item>
+
+    <!-- Intelligent matching dialog -->
+    <LitSearchDialog
+      v-model:visible="searchDialogVisible"
+      :results="searchResults"
+      :loading="searchLoading"
+      @confirm="onSearchResultConfirm"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from 'vue'
-import type { PaperFormDTO, DoiLookupResult } from '@/api/achievement/paper'
+import { reactive, ref, watch } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search, InfoFilled } from '@element-plus/icons-vue'
+import type { PaperFormDTO, DoiLookupResult, LiteratureSearchItem } from '@/api/achievement/paper'
+import { searchLiterature } from '@/api/achievement/paper'
 import DoiAutoComplete from './DoiAutoComplete.vue'
+import LitSearchDialog from './LitSearchDialog.vue'
 
 const props = defineProps<{
   modelValue: PaperFormDTO
@@ -102,7 +131,7 @@ const emit = defineEmits<{
   (e: 'doi-ready', data: DoiLookupResult): void
 }>()
 
-const form = reactive<PaperFormDTO>({ ...props.modelValue })
+const form: any = reactive({ ...props.modelValue })
 
 watch(
   () => ({ ...form }),
@@ -122,6 +151,74 @@ watch(
 
 function onDoiResult(data: DoiLookupResult) {
   emit('doi-ready', data)
+}
+
+// ── Intelligent Matching (title + authors → CrossRef search) ──────────
+
+const searchDialogVisible = ref(false)
+const searchLoading = ref(false)
+const searchResults = ref<LiteratureSearchItem[]>([])
+
+async function triggerSearch() {
+  if (!form.title) {
+    ElMessage.warning('请先输入论文标题')
+    return
+  }
+  if (!form.authors) {
+    try {
+      await ElMessageBox.confirm(
+        '当前未填写作者信息，建议补充至少一位作者以提高匹配准确性。是否继续搜索？',
+        '搜索提示',
+        {
+          confirmButtonText: '继续搜索',
+          cancelButtonText: '去填作者',
+          type: 'info',
+        }
+      )
+    } catch {
+      // User clicked "去填作者" or closed dialog
+      return
+    }
+  }
+  searchLoading.value = true
+  searchDialogVisible.value = true
+  searchResults.value = []
+
+  try {
+    const res: any = await searchLiterature({
+      title: form.title,
+      authors: form.authors || undefined,
+    })
+    // Axios interceptor unwraps to { code, data, message }
+    if (res?.code === 200 && Array.isArray(res.data)) {
+      searchResults.value = res.data
+      if (res.data.length === 0) {
+        ElMessage.info('未找到匹配结果，请调整标题或作者后重试')
+      }
+    } else {
+      ElMessage.warning('搜索服务暂时不可用，请稍后重试')
+    }
+  } catch {
+    ElMessage.error('文献检索失败，请检查网络连接后重试')
+    searchDialogVisible.value = false
+  } finally {
+    searchLoading.value = false
+  }
+}
+
+function onSearchResultConfirm(item: LiteratureSearchItem) {
+  // Auto-fill all available fields from the selected match
+  if (item.title) form.title = item.title
+  if (item.authors) form.authors = item.authors
+  if (item.journal) form.journal = item.journal
+  if (item.doi) form.doi = item.doi
+  if (item.volume) form.volume = item.volume
+  if (item.issue) form.issue = item.issue
+  if (item.pages) form.pages = item.pages
+  if (item.publishYear) form.publishYear = item.publishYear
+  if (item.abstractText) form.abstractText = item.abstractText
+
+  ElMessage.success('已根据匹配结果自动填充表单')
 }
 
 // ── Form Field Options ────────────────────────────────────────────
@@ -159,5 +256,36 @@ const indexStatusRules = [
 <style scoped>
 .paper-form {
   width: 100%;
+}
+
+.title-search-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.title-input {
+  flex: 1;
+}
+
+.smart-match-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.smart-match-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.5;
+}
+
+.smart-match-tip .el-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #409eff;
 }
 </style>

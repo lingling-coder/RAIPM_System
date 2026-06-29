@@ -122,7 +122,7 @@ async function handleUpload(options: any) {
   }
 }
 
-async function handleDownload(row: UploadedFile) {
+async function handleDownload(row: any) {
   try {
     const res: any = await attachmentApi.download(row.id)
     const blob = res instanceof Blob ? res : new Blob([res])
@@ -155,7 +155,7 @@ function handleError(err: any, file: any) {
   // Error shown already in handleUpload
 }
 
-async function handleDelete(row: UploadedFile) {
+async function handleDelete(row: any) {
   try {
     await ElMessageBox.confirm('确认删除该附件？此操作不可撤销。', '确认删除', {
       type: 'warning',

@@ -162,7 +162,7 @@ const defaultStats = ref([
 // ── Chart tab state ──
 const activeChart = ref('trend')
 
-function handleChartTabChange(tabName: string) {
+function handleChartTabChange(tabName: any) {
   activeChart.value = tabName
   // No data re-fetch — data already loaded in store (D-04/D-05)
 }

@@ -328,6 +328,10 @@ async function handleLogout() {
   }
 
   .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
     .user-dropdown-trigger {
       display: flex;
       align-items: center;

@@ -17,7 +17,7 @@ const routeQueryRef: Ref<Record<string, string>> = ref({ keyword: 'test' })
 
 // Use importOriginal to preserve other exports (createRouter, etc.)
 // that are needed by router/index.ts which is imported by store/user.ts
-vi.mock(import('vue-router'), async (importOriginal) => {
+vi.mock('vue-router', async (importOriginal: any) => {
   const actual = await importOriginal()
   return {
     ...actual,

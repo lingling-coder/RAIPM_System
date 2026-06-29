@@ -61,7 +61,7 @@
       </template>
       <div class="step-body">
         <el-result
-          :icon="importResult.hasErrors() ? 'warning' : 'success'"
+          :icon="importResult.errors && importResult.errors.length > 0 ? 'warning' : 'success'"
           :title="resultTitle"
           :sub-title="resultSubtitle"
         >

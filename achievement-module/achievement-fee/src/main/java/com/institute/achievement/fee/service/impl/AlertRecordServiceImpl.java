@@ -14,7 +14,7 @@ import com.institute.achievement.fee.mapper.AlertRecordMapper;
 import com.institute.achievement.fee.mapper.FeeRecordMapper;
 import com.institute.achievement.fee.service.AlertRecordService;
 import com.institute.achievement.framework.security.SecurityUtils;
-import com.institute.achievement.module.system.service.NotificationService;
+import com.institute.achievement.common.service.INotificationService;
 import com.institute.achievement.patent.entity.Patent;
 import com.institute.achievement.patent.mapper.PatentMapper;
 import lombok.RequiredArgsConstructor;
@@ -53,7 +53,7 @@ public class AlertRecordServiceImpl implements AlertRecordService {
     private final AlertRecordMapper alertRecordMapper;
     private final FeeRecordMapper feeRecordMapper;
     private final PatentMapper patentMapper;
-    private final NotificationService notificationService;
+    private final INotificationService notificationService;
 
     @Override
     @Transactional

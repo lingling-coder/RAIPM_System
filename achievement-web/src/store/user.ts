@@ -5,6 +5,27 @@ import { getProfile, type ProfileInfo } from '@/api/profile'
 import router from '@/router'
 import { ElMessage } from 'element-plus'
 
+/**
+ * Decode JWT payload without a library.
+ * Returns null for invalid tokens.
+ */
+function parseJwt(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    const jsonStr = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    )
+    return JSON.parse(jsonStr)
+  } catch {
+    return null
+  }
+}
+
 export interface MenuItem {
   path: string
   title: string
@@ -15,7 +36,8 @@ export interface MenuItem {
 
 export const useUserStore = defineStore('user', () => {
   // ── State ──────────────────────────────────────────────────────────────
-  const token = ref<string | null>(null)
+  // Restore token from localStorage so it survives page refresh
+  const token = ref<string | null>(localStorage.getItem('accessToken'))
   const refreshToken = ref<string | null>(null)
   const roles = ref<string[]>([])
   const permissions = ref<string[]>([])
@@ -37,6 +59,7 @@ export const useUserStore = defineStore('user', () => {
     const res = await apiLogin(params)
     if (res.code === 200 && res.data) {
       token.value = res.data.accessToken
+      localStorage.setItem('accessToken', res.data.accessToken)
       if (res.data.userInfo) {
         roles.value = res.data.userInfo.roles || []
         permissions.value = res.data.userInfo.permissions || []
@@ -66,9 +89,34 @@ export const useUserStore = defineStore('user', () => {
       if (res.code === 200 && res.data) {
         const profile = res.data
         userInfo.value = profile
+
         // Update roles and permissions from profile if not already loaded
-        if (roles.value.length === 0 && profile.roleNames) {
-          roles.value = profile.roleNames.map(r => 'ROLE_' + r.toUpperCase().replace(/\s+/g, '_'))
+        // Priority: profile.roles (role codes) > JWT decode > roleNames mapping
+        if (roles.value.length === 0) {
+          if (profile.roles && profile.roles.length > 0) {
+            roles.value = profile.roles
+          } else {
+            // Fallback: decode from JWT
+            const claims = parseJwt(token.value)
+            if (claims && Array.isArray(claims.roles)) {
+              roles.value = claims.roles as string[]
+            } else if (profile.roleNames) {
+              // Last resort: map Chinese role names
+              roles.value = profile.roleNames.map(r => 'ROLE_' + r.toUpperCase().replace(/\s+/g, '_'))
+            }
+          }
+        }
+
+        if (permissions.value.length === 0) {
+          if (profile.permissions && profile.permissions.length > 0) {
+            permissions.value = profile.permissions
+          } else {
+            // Fallback: decode from JWT
+            const claims = parseJwt(token.value)
+            if (claims && Array.isArray(claims.permissions)) {
+              permissions.value = claims.permissions as string[]
+            }
+          }
         }
       }
     } catch (e) {
@@ -97,6 +145,7 @@ export const useUserStore = defineStore('user', () => {
 
   function resetState() {
     token.value = null
+    localStorage.removeItem('accessToken')
     refreshToken.value = null
     roles.value = []
     permissions.value = []

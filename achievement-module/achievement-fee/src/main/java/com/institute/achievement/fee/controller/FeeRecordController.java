@@ -153,7 +153,7 @@ public class FeeRecordController {
     @PutMapping("/batch-pay")
     public Result<Integer> batchPay(@Valid @RequestBody BatchPayRequest request) {
         int affected = feeRecordService.batchPay(
-                request.getIds(), request.getPaidDate(), request.getVoucherNo(), request.getSlipNo());
+                request.getIds(), request.getPaidDate(), request.getVoucherNo());
         return Result.success(affected);
     }
 

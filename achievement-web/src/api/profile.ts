@@ -9,6 +9,8 @@ export interface ProfileInfo {
   deptId: number | null
   deptName: string
   roleNames: string[]
+  roles?: string[]
+  permissions?: string[]
   lastLoginIp: string
   lastLoginTime: string
   passwordChangeRequired: boolean

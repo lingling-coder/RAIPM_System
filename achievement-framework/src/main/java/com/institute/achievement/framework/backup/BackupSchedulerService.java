@@ -64,7 +64,7 @@ public class BackupSchedulerService {
      * 2. File storage backup (tar on Linux, zip on Windows)
      * 3. Retention cleanup (remove files older than retentionDays)
      */
-    @Scheduled(cron = "${backup.cron}")
+    @Scheduled(cron = "0 0 2 * * ?")
     public void backup() {
         if (!config.isEnabled()) {
             log.debug("Backup is disabled, skipping scheduled backup");

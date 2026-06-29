@@ -7,9 +7,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
 
@@ -25,6 +27,7 @@ import java.util.*;
 public class OpenAlexClient {
 
     private static final String API_BASE = "https://api.openalex.org/works/doi:";
+    private static final String SEARCH_API = "https://api.openalex.org/works";
     private static final Duration TIMEOUT = Duration.ofSeconds(5);
 
     private final HttpClient httpClient;
@@ -68,6 +71,85 @@ public class OpenAlexClient {
             log.warn("OpenAlex lookup failed for DOI {}: {}", doi, e.getMessage());
             return Optional.empty();
         }
+    }
+
+    // ── Search by Title + Author ──────────────────────────────────────────
+
+    /**
+     * Search OpenAlex by title and optional authors, returning up to {@code rows} candidates.
+     * <p>
+     * OpenAlex indexes a broader range of international and regional journals than Crossref,
+     * including some Chinese/Asian publications.
+     *
+     * @param title   paper title (required)
+     * @param authors optional author names for query refinement
+     * @param rows    max results to return (suggested: 5)
+     * @return list of DoiLookupResult candidates (empty if none found)
+     */
+    public List<DoiLookupResult> searchByTitle(String title, String authors, int rows) {
+        try {
+            StringBuilder query = new StringBuilder(title.trim());
+            if (authors != null && !authors.trim().isEmpty()) {
+                query.append(" ").append(authors.trim());
+            }
+            String encodedQuery = URLEncoder.encode(query.toString(), StandardCharsets.UTF_8);
+            String url = SEARCH_API + "?search=" + encodedQuery + "&per_page=" + rows;
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(TIMEOUT)
+                    .header("Accept", "application/json")
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request,
+                    HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                log.warn("OpenAlex search returned status {} for query: {}", response.statusCode(), query);
+                return List.of();
+            }
+
+            return parseSearchResponse(response.body());
+
+        } catch (Exception e) {
+            log.warn("OpenAlex search failed for query '{}': {}", title, e.getMessage());
+            return List.of();
+        }
+    }
+
+    /**
+     * Parse OpenAlex search response (list of works) into DoiLookupResult list.
+     */
+    private List<DoiLookupResult> parseSearchResponse(String jsonBody) {
+        List<DoiLookupResult> results = new ArrayList<>();
+        try {
+            JsonNode root = objectMapper.readTree(jsonBody);
+            JsonNode items = root.path("results");
+
+            if (items.isArray()) {
+                for (JsonNode work : items) {
+                    // Extract DOI from the work's "doi" field (full URL like https://doi.org/10.xxx/xxx)
+                    String doiUrl = work.path("doi").asText(null);
+                    String doi = null;
+                    if (doiUrl != null && doiUrl.startsWith("https://doi.org/")) {
+                        doi = doiUrl.substring("https://doi.org/".length());
+                    }
+                    if (doi == null || doi.isEmpty()) {
+                        continue;
+                    }
+                    // Reuse single-work parse: serialize the work node back to JSON string
+                    String workJson = objectMapper.writeValueAsString(work);
+                    DoiLookupResult result = parseResponse(workJson, doi);
+                    if (result.isFound()) {
+                        results.add(result);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to parse OpenAlex search response: {}", e.getMessage());
+        }
+        return results;
     }
 
     /**

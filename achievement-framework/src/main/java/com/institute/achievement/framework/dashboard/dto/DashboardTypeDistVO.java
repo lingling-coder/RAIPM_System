@@ -1,7 +1,8 @@
 package com.institute.achievement.framework.dashboard.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
+
+import java.io.Serializable;
 
 /**
  * VO for type distribution pie chart data.
@@ -11,8 +12,9 @@ import lombok.Data;
  * pie chart on the dashboard.
  */
 @Data
-@AllArgsConstructor
-public class DashboardTypeDistVO {
+public class DashboardTypeDistVO implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /** Achievement type discriminator: 'paper', 'patent', or 'software' */
     private String achievementType;

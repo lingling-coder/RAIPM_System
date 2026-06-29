@@ -317,13 +317,13 @@ const formRules = {
 }
 
 // ── Urgency Helpers ──────────────────────────────────────────────────────────
-function urgencyTagType(urgency: string): string {
-  const map: Record<string, string> = {
+function urgencyTagType(urgency: string): 'primary' | 'success' | 'warning' | 'info' | 'danger' | undefined {
+  const map: Record<string, 'danger' | 'warning' | 'primary'> = {
     HIGH: 'danger',
     MEDIUM: 'warning',
     LOW: 'primary',
   }
-  return map[urgency] || 'info'
+  return map[urgency]
 }
 
 function urgencyLabel(urgency: string): string {

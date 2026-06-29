@@ -41,17 +41,25 @@ export interface ChainVerificationResult {
   totalChecked: number
 }
 
+// Helper type matching the interceptor-unwrapped response shape from api/index.ts
+interface ApiResult<T> {
+  code: number
+  message: string
+  data: T
+  success: boolean
+}
+
 /** Paginated audit log query */
-export function page(params: AuditLogPageParams) {
-  return http.post('/api/system/audit-log/page', params)
+export function page(params: AuditLogPageParams): Promise<ApiResult<{ records: AuditLogVO[]; total: number }>> {
+  return http.post('/api/system/audit-log/page', params) as any
 }
 
 /** Get audit log detail by ID */
-export function getDetail(id: number) {
-  return http.get(`/api/system/audit-log/${id}`)
+export function getDetail(id: number): Promise<ApiResult<AuditLogVO>> {
+  return http.get(`/api/system/audit-log/${id}`) as any
 }
 
 /** Verify hash chain integrity for a range of entries */
-export function verifyChain(fromId: number, toId: number) {
-  return http.post('/api/system/audit-log/verify-chain', { fromId, toId })
+export function verifyChain(fromId: number, toId: number): Promise<ApiResult<ChainVerificationResult>> {
+  return http.post('/api/system/audit-log/verify-chain', { fromId, toId }) as any
 }

@@ -1,7 +1,8 @@
 package com.institute.achievement.framework.dashboard.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
+
+import java.io.Serializable;
 
 /**
  * VO for patent status donut chart data.
@@ -11,8 +12,9 @@ import lombok.Data;
  * valid/invalid donut chart on the dashboard.
  */
 @Data
-@AllArgsConstructor
-public class DashboardPatentStatusVO {
+public class DashboardPatentStatusVO implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /** Status category: 'VALID', 'INVALID', or 'UNKNOWN' */
     private String status;

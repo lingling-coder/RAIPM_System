@@ -146,9 +146,7 @@ describe('AchievementRegister.vue', () => {
 
     // Set formData with no title to trigger the saveDraft guard
     const store = (await import('@/stores/achievement')).useAchievementStore()
-    store.formData = {}
-
-    // Find save button and click (savingDraft button is #2 in the form)
+    store.formData = {} as any
     const saveButton = wrapper.findAllComponents({ name: 'ElButton' }).find(
       (b) => b.text().includes('保存草稿')
     )

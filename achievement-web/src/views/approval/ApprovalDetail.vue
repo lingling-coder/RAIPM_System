@@ -207,8 +207,8 @@ onMounted(async () => {
   }
 })
 
-function statusTagType(status: string): string {
-  const map: Record<string, string> = {
+function statusTagType(status: string): "primary" | "success" | "warning" | "info" | "danger" | undefined {
+  const map: Record<string, "primary" | "success" | "warning" | "info" | "danger"> = {
     DRAFT: 'info',
     PENDING_DEPT_REVIEW: 'warning',
     PENDING_ADMIN_ARCHIVE: 'primary',

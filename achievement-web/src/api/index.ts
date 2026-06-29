@@ -5,7 +5,7 @@ import router from '@/router'
 import { ElMessage } from 'element-plus'
 
 const http: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL as string || '/api',
+  baseURL: '',  // URLs are already absolute paths (start with /api/)
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json;charset=utf-8',
@@ -79,14 +79,13 @@ http.interceptors.response.use(
 
       try {
         // Try to refresh the token
-        const response = await axios.post('/api/auth/refresh', {}, {
-          baseURL: import.meta.env.VITE_API_BASE_URL as string || '/api',
-        })
+        const response = await axios.post('/api/auth/refresh')
 
         if (response.data?.code === 200 && response.data?.data?.accessToken) {
           const newToken = response.data.data.accessToken
           const userStore = useUserStore()
           userStore.setToken(newToken)
+          localStorage.setItem('accessToken', newToken)
 
           processQueue(null, newToken)
 

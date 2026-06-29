@@ -142,3 +142,29 @@ export function getPage(params: {
 export function lookupDoi(doi: string) {
   return http.get('/api/doi/lookup', { params: { doi } })
 }
+
+export interface LiteratureSearchRequest {
+  title: string
+  authors?: string
+}
+
+export interface LiteratureSearchItem {
+  found: boolean
+  doi: string
+  title?: string
+  authors?: string
+  journal?: string
+  volume?: number
+  issue?: number
+  pages?: string
+  publishYear?: number
+  abstractText?: string
+}
+
+/**
+ * Search for publications by title + optional authors via CrossRef.
+ * Returns up to 5 candidate matches for user selection.
+ */
+export function searchLiterature(data: LiteratureSearchRequest) {
+  return http.post('/api/doi/search', data)
+}

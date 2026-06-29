@@ -5,9 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.institute.achievement.common.exception.AchievementException;
 import com.institute.achievement.framework.security.SecurityUtils;
-import com.institute.achievement.module.system.entity.SysUser;
-import com.institute.achievement.module.system.mapper.SysUserMapper;
-import com.institute.achievement.module.system.service.NotificationService;
+import com.institute.achievement.common.service.INotificationService;
 import com.institute.achievement.reminder.dto.ReminderTaskVO;
 import com.institute.achievement.reminder.entity.ReminderConfig;
 import com.institute.achievement.reminder.entity.ReminderTask;
@@ -53,15 +51,7 @@ public class ReminderTaskServiceImpl implements ReminderTaskService {
 
     private final ReminderTaskMapper reminderTaskMapper;
     private final ReminderConfigMapper reminderConfigMapper;
-    private final NotificationService notificationService;
-    private final SysUserMapper sysUserMapper;
-
-    /**
-     * Optional email service — may not be available in all deployment
-     * configurations. Guarded with null check before use.
-     */
-    @Autowired(required = false)
-    private Object emailService;
+    private final INotificationService notificationService;
 
     @Override
     @Transactional
@@ -112,12 +102,12 @@ public class ReminderTaskServiceImpl implements ReminderTaskService {
             for (Long userId : targetUserIds) {
                 try {
                     // Dedup check: same configId + userId + deadline already exists?
-                    int existingCount = reminderTaskMapper.selectCount(
+                    Long existingCount = reminderTaskMapper.selectCount(
                             new LambdaQueryWrapper<ReminderTask>()
                                     .eq(ReminderTask::getConfigId, config.getId())
                                     .eq(ReminderTask::getUserId, userId)
                                     .eq(ReminderTask::getDeadline, computedDeadline));
-                    if (existingCount > 0) {
+                    if (existingCount != null && existingCount > 0) {
                         log.debug("Skipping duplicate task: configId={}, userId={}, deadline={}",
                                 config.getId(), userId, computedDeadline);
                         continue;
@@ -474,20 +464,15 @@ public class ReminderTaskServiceImpl implements ReminderTaskService {
 
     /**
      * Resolve a user's display name from their user ID.
+     * <p>
+     * Delegates to INotificationService which may have a richer
+     * implementation in the system module.
      *
      * @param userId the user ID
-     * @return the user's realName, or "用户{userId}" if not found
+     * @return the user's display name
      */
     private String resolveUserName(Long userId) {
-        try {
-            SysUser user = sysUserMapper.selectById(userId);
-            if (user != null && user.getRealName() != null && !user.getRealName().isEmpty()) {
-                return user.getRealName();
-            }
-        } catch (Exception e) {
-            log.trace("Failed to resolve user name for userId={}: {}", userId, e.getMessage());
-        }
-        return "用户" + userId;
+        return notificationService.resolveUserName(userId);
     }
 
     /**

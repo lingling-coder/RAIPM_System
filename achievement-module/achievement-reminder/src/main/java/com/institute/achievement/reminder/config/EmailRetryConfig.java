@@ -41,7 +41,6 @@ public class EmailRetryConfig {
         RetryConfig config = RetryConfig.custom()
                 .maxAttempts(3)
                 .waitDuration(Duration.ofMinutes(1))
-                .exponentialBackoff(5, Duration.ofMinutes(15))
                 .build();
 
         RetryRegistry registry = RetryRegistry.of(config);

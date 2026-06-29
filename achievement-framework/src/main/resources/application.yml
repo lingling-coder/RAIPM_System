@@ -10,6 +10,12 @@ spring:
     time-zone: Asia/Shanghai
     default-property-inclusion: non_null
 
+  # ── Task Scheduling ──────────────────────────────────────────────────────
+  task:
+    scheduling:
+      pool:
+        size: 2
+
 server:
   servlet:
     encoding:
@@ -37,13 +43,6 @@ backup:
   retention-days: 30
   cron: 0 0 2 * * ?  # 2 AM daily
   file-backup-paths: ./uploads
-
-# ── Task Scheduling ────────────────────────────────────────────────────────
-spring:
-  task:
-    scheduling:
-      pool:
-        size: 2
 
 # ── JWT Configuration ──────────────────────────────────────────────────────
 jwt:

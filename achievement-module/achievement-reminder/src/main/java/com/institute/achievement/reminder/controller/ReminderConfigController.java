@@ -50,7 +50,7 @@ public class ReminderConfigController {
      * @return paginated config list
      */
     @GetMapping("/page")
-    @PreAuthorize("hasPermission('system:reminder:list')")
+    @PreAuthorize("hasRole('ROLE_SYSTEM_ADMIN')")
     public Result<Page<ReminderConfigVO>> page(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -66,7 +66,7 @@ public class ReminderConfigController {
      * @return the config with resolved display fields
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasPermission('system:reminder:list')")
+    @PreAuthorize("hasRole('ROLE_SYSTEM_ADMIN')")
     public Result<ReminderConfigVO> getById(@PathVariable Long id) {
         ReminderConfigVO vo = reminderConfigService.getById(id);
         return Result.success(vo);
@@ -79,7 +79,7 @@ public class ReminderConfigController {
      * @return success response
      */
     @PostMapping
-    @PreAuthorize("hasPermission('system:reminder:create')")
+    @PreAuthorize("hasRole('ROLE_SYSTEM_ADMIN')")
     public Result<Void> create(@RequestBody @Valid ReminderConfigDTO dto) {
         reminderConfigService.create(dto);
         return Result.success();
@@ -93,7 +93,7 @@ public class ReminderConfigController {
      * @return success response
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasPermission('system:reminder:edit')")
+    @PreAuthorize("hasRole('ROLE_SYSTEM_ADMIN')")
     public Result<Void> update(@PathVariable Long id, @RequestBody @Valid ReminderConfigDTO dto) {
         reminderConfigService.update(id, dto);
         return Result.success();
@@ -108,7 +108,7 @@ public class ReminderConfigController {
      * @return success response
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasPermission('system:reminder:remove')")
+    @PreAuthorize("hasRole('ROLE_SYSTEM_ADMIN')")
     public Result<Void> delete(@PathVariable Long id) {
         reminderConfigService.delete(id);
         return Result.success();

@@ -331,7 +331,11 @@ class DashboardServiceTest {
     }
 
     private DashboardTypeDistVO createTypeDist(String type, Long count) {
-        return new DashboardTypeDistVO(type, count, 0.0);
+        DashboardTypeDistVO vo = new DashboardTypeDistVO();
+        vo.setAchievementType(type);
+        vo.setCount(count);
+        vo.setPercentage(0.0);
+        return vo;
     }
 
     private DashboardDeptRankVO createDeptRank(String deptName, Long deptId,
@@ -341,6 +345,11 @@ class DashboardServiceTest {
     }
 
     private DashboardPatentStatusVO createPatentStatus(String status, String label, Long count) {
-        return new DashboardPatentStatusVO(status, label, count, 0.0);
+        DashboardPatentStatusVO vo = new DashboardPatentStatusVO();
+        vo.setStatus(status);
+        vo.setLabel(label);
+        vo.setCount(count);
+        vo.setPercentage(0.0);
+        return vo;
     }
 }

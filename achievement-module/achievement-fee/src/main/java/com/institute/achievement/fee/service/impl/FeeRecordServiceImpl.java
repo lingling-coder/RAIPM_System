@@ -135,7 +135,7 @@ public class FeeRecordServiceImpl implements FeeRecordService {
 
         // T-02-01-05: Only the creator can delete, AND only when status is PAUSED
 
-        if (!record.getCreatedBy().equals(currentUserId)) {
+        if (!record.getCreatedBy().equals(SecurityUtils.getCurrentUserId())) {
             throw AchievementException.notAuthorized("只能删除自己的费用记录");
         }
         if (!FeeStatusEnum.PAUSED.getCode().equals(record.getStatus())) {
@@ -215,7 +215,7 @@ public class FeeRecordServiceImpl implements FeeRecordService {
             String slipNo = feeSlipNumberGenerator.generateSlipNo();
 
             // Persist the slip number
-            int updated = feeRecordMapper.updateSlipNo(id, slipNo, currentUserId);
+            int updated = feeRecordMapper.updateSlipNo(id, slipNo, SecurityUtils.getCurrentUserId());
             if (updated == 0) {
                 log.warn("Failed to update slip_no for feeRecord id={}", id);
                 // Continue generating for remaining records — partial success is acceptable

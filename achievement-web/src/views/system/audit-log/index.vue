@@ -59,7 +59,7 @@
             range-separator="至"
             start-placeholder="开始时间"
             end-placeholder="结束时间"
-            value-format="YYYY-MM-DD HH:mm:ss"
+            value-format="YYYY-MM-DDTHH:mm:ss"
             :default-time="[new Date(0, 0, 0, 0, 0, 0), new Date(0, 0, 0, 23, 59, 59)]"
             style="width: 380px"
           />
@@ -334,8 +334,9 @@ async function fetchData() {
     }
 
     const response = await queryPage(params)
-    if (response.data && response.data.code === 200) {
-      const pageResult = response.data.data
+    // axios interceptor already unwraps {code, data, message} → response = {code, data, message}
+    if (response && response.code === 200) {
+      const pageResult = response.data
       tableData.value = pageResult.records || []
       pagination.total = pageResult.total || 0
     } else {
@@ -382,8 +383,9 @@ async function openDetail(row: AuditLogVO) {
 
   try {
     const response = await getDetail(row.id)
-    if (response.data && response.data.code === 200) {
-      currentDetail.value = response.data.data
+    // axios interceptor already unwraps {code, data, message}
+    if (response && response.code === 200) {
+      currentDetail.value = response.data
     }
   } catch (e) {
     console.error('Failed to fetch audit log detail:', e)
@@ -406,8 +408,9 @@ async function handleChainVerify() {
 
   try {
     const response = await verifyChain(fromId, toId)
-    if (response.data && response.data.code === 200) {
-      chainResult.value = response.data.data
+    // axios interceptor already unwraps {code, data, message}
+    if (response && response.code === 200) {
+      chainResult.value = response.data
     } else {
       ElMessage.error('校验失败')
     }
@@ -494,7 +497,7 @@ function formatDateTime(dateStr: string): string {
 
 function formatDateString(date: Date): string {
   const pad = (n: number) => n.toString().padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 </script>
 

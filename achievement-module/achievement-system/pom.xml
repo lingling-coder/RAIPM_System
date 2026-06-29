@@ -35,6 +35,14 @@
             <groupId>com.institute</groupId>
             <artifactId>achievement-copyright</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.institute</groupId>
+            <artifactId>achievement-fee</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.institute</groupId>
+            <artifactId>achievement-reminder</artifactId>
+        </dependency>
 
         <!-- Spring Boot -->
         <dependency>
@@ -103,6 +111,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <skip>false</skip>
+                    <classifier>executable</classifier>
                 </configuration>
             </plugin>
         </plugins>

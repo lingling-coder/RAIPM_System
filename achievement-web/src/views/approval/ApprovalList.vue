@@ -132,8 +132,8 @@ function handleRowClick(row: any) {
   router.push(`/approval/detail/${row.id}?type=${row.type || row.achievementType}`)
 }
 
-function typeTag(type: string): string {
-  const map: Record<string, string> = { paper: '', patent: 'success', copyright: 'warning' }
+function typeTag(type: string): "primary" | "success" | "warning" | "info" | "danger" | undefined {
+  const map: Record<string, "primary" | "success" | "warning" | "info" | "danger"> = { paper: 'info', patent: 'success', copyright: 'warning' }
   return map[type] || 'info'
 }
 

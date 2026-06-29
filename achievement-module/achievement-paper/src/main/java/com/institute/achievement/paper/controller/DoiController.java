@@ -3,9 +3,13 @@ package com.institute.achievement.paper.controller;
 import com.institute.achievement.common.util.Result;
 import com.institute.achievement.integration.doi.DoiAutoFillService;
 import com.institute.achievement.integration.doi.dto.DoiLookupResult;
+import com.institute.achievement.paper.dto.LiteratureSearchRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * REST controller for DOI auto-complete operations.
@@ -29,5 +33,20 @@ public class DoiController {
     public Result<DoiLookupResult> lookupDoi(@RequestParam String doi) {
         DoiLookupResult result = doiAutoFillService.lookup(doi);
         return Result.success(result);
+    }
+
+    /**
+     * Search for publications by title + optional authors.
+     * Returns up to 5 candidate matches from CrossRef for user selection.
+     * <p>
+     * The user picks one candidate, and its metadata is used to auto-fill
+     * the paper registration form (title, authors, journal, DOI, etc.).
+     */
+    @PostMapping("/search")
+    public Result<List<DoiLookupResult>> searchLiterature(
+            @RequestBody @Valid LiteratureSearchRequest request) {
+        List<DoiLookupResult> results = doiAutoFillService.search(
+                request.getTitle(), request.getAuthors(), 5);
+        return Result.success(results);
     }
 }

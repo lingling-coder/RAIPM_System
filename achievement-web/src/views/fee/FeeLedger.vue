@@ -118,11 +118,11 @@
         <template #default="scope">
           <el-tag
             v-if="getAlertTag(asFee(scope.row))"
-            :type="getAlertTag(asFee(scope.row)).type"
-            :effect="getAlertTag(asFee(scope.row)).effect || 'dark'"
+            :type="getAlertTag(asFee(scope.row))!.type"
+            :effect="getAlertTag(asFee(scope.row))!.effect || 'dark'"
             size="small"
           >
-            {{ getAlertTag(asFee(scope.row)).text }}
+            {{ getAlertTag(asFee(scope.row))!.text }}
           </el-tag>
           <span v-else>—</span>
         </template>
@@ -282,6 +282,7 @@ const filters = reactive({
   keyword: '',
   dueDateFrom: null as string | null,
   dueDateTo: null as string | null,
+  ownerType: null as string | null,
 })
 
 // ── Batch selection (02-04 Task 3) ────────────────────────────────
@@ -500,6 +501,8 @@ function openEdit(row: FeeRecordVO) {
     voucherNo: row.voucherNo,
     fundingSource: row.fundingSource,
     status: row.status,
+    ownerType: row.ownerType,
+    ownerId: row.ownerId,
   }
   editDialogVisible.value = true
 }
@@ -517,6 +520,8 @@ async function saveEdit() {
       voucherNo: editForm.value.voucherNo,
       fundingSource: editForm.value.fundingSource,
       status: editForm.value.status,
+      ownerType: editForm.value.ownerType,
+      ownerId: editForm.value.ownerId,
     })
     ElMessage.success('费用记录已更新')
     editDialogVisible.value = false
@@ -530,7 +535,7 @@ async function saveEdit() {
 
 // ── Display helpers ───────────────────────────────────────────────
 
-function getAlertTag(row: FeeRecordVO): { type: TagType, effect?: string, text: string } | null {
+function getAlertTag(row: FeeRecordVO): { type: TagType, effect?: 'light' | 'dark' | 'plain', text: string } | null {
   if (row.status !== 'pending') return null
   if (!row.dueDate) return null
   const now = new Date()

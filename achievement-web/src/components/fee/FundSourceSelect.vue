@@ -30,12 +30,12 @@ import http from '@/api/index'
  * @emits update:modelValue - when selection changes
  */
 defineProps<{
-  modelValue?: string
+  modelValue?: string | null
   placeholder?: string
 }>()
 
 defineEmits<{
-  'update:modelValue': [value: string | undefined]
+  'update:modelValue': [value: string | null | undefined]
 }>()
 
 interface DictOption {

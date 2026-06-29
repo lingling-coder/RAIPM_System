@@ -3,6 +3,7 @@ package com.institute.achievement.module.system;
 import com.institute.achievement.common.exception.AchievementException;
 import com.institute.achievement.module.system.entity.Notification;
 import com.institute.achievement.module.system.mapper.NotificationMapper;
+import com.institute.achievement.module.system.mapper.SysUserMapper;
 import com.institute.achievement.module.system.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,13 +33,15 @@ class NotificationServiceTest {
     @Mock
     private StringRedisTemplate redisTemplate;
     @Mock
+    private SysUserMapper sysUserMapper;
+    @Mock
     private ValueOperations<String, String> valueOperations;
 
     private NotificationService notificationService;
 
     @BeforeEach
     void setUp() {
-        notificationService = new NotificationService(notificationMapper, redisTemplate);
+        notificationService = new NotificationService(notificationMapper, redisTemplate, sysUserMapper);
     }
 
     @Test

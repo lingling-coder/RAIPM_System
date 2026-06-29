@@ -198,7 +198,7 @@ function typeIconClass(type: string): string {
   return 'icon-system'
 }
 
-function urgencyTagType(urgency: string): string {
+function urgencyTagType(urgency: string): 'primary' | 'success' | 'warning' | 'info' | 'danger' | undefined {
   if (urgency === 'HIGH') return 'danger'
   if (urgency === 'MEDIUM') return 'warning'
   return 'primary'

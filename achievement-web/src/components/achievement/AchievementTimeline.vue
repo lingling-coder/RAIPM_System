@@ -58,8 +58,8 @@ function formatTime(timeStr: string): string {
   return timeStr.replace('T', ' ').substring(0, 16)
 }
 
-function nodeType(action: string): string {
-  const map: Record<string, string> = {
+function nodeType(action: string): "primary" | "success" | "warning" | "info" | "danger" | undefined {
+  const map: Record<string, "primary" | "success" | "warning" | "info" | "danger"> = {
     SUBMIT: 'primary',
     PASS_DEPT: 'success',
     PASS_ADMIN: 'success',
@@ -71,8 +71,8 @@ function nodeType(action: string): string {
   return map[action] || 'info'
 }
 
-function tagType(action: string): string {
-  const map: Record<string, string> = {
+function tagType(action: string): "primary" | "success" | "warning" | "info" | "danger" | undefined {
+  const map: Record<string, "primary" | "success" | "warning" | "info" | "danger"> = {
     SUBMIT: 'primary',
     PASS_DEPT: 'success',
     PASS_ADMIN: 'success',

@@ -9,6 +9,7 @@ import com.institute.achievement.module.system.entity.SysDepartment;
 import com.institute.achievement.module.system.entity.SysRole;
 import com.institute.achievement.module.system.entity.SysUser;
 import com.institute.achievement.module.system.mapper.SysDepartmentMapper;
+import com.institute.achievement.module.system.mapper.SysMenuMapper;
 import com.institute.achievement.module.system.mapper.SysRoleMapper;
 import com.institute.achievement.module.system.mapper.SysUserMapper;
 import com.institute.achievement.module.system.security.TokenRefreshService;
@@ -38,6 +39,7 @@ public class ProfileServiceImpl implements ProfileService {
     private final SysUserMapper userMapper;
     private final SysRoleMapper roleMapper;
     private final SysDepartmentMapper departmentMapper;
+    private final SysMenuMapper menuMapper;
     private final TokenRefreshService tokenRefreshService;
 
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
@@ -68,13 +70,24 @@ public class ProfileServiceImpl implements ProfileService {
             }
         }
 
-        // Resolve role names
+        // Resolve role names and role codes
         List<SysRole> roles = roleMapper.selectRolesByUserId(user.getId());
         if (roles != null) {
             builder.roleNames(roles.stream()
                     .map(SysRole::getRoleName)
                     .collect(Collectors.toList()));
+            builder.roles(roles.stream()
+                    .map(SysRole::getRoleCode)
+                    .collect(Collectors.toList()));
         }
+
+        // Resolve permissions (menu permissions)
+        List<String> permissions = menuMapper.selectMenusByUserId(user.getId())
+                .stream()
+                .map(com.institute.achievement.module.system.entity.SysMenu::getPermission)
+                .filter(p -> p != null && !p.isEmpty())
+                .collect(Collectors.toList());
+        builder.permissions(permissions);
 
         return builder.build();
     }

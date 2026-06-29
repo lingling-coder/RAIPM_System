@@ -130,7 +130,7 @@
       <!-- Dynamic dimension column -->
       <el-table-column :label="dimensionLabel" min-width="160">
         <template #default="scope">
-          <span class="dimension-cell">{{ getDimensionDisplay(scope.row) }}</span>
+          <span class="dimension-cell">{{ getDimensionDisplay(scope.row as FeeStatsVO) }}</span>
         </template>
       </el-table-column>
 
@@ -351,8 +351,8 @@ function downloadBlob(blob: Blob, filename: string) {
 
 // ── Table Summary Row ──────────────────────────────────────────────────
 
-function summaryMethod(param: { columns: any[]; data: FeeStatsVO[] }) {
-  const { columns, data } = param
+function summaryMethod(param: { columns: any[]; data: FeeStatsVO[] }): any[] {
+  const { columns, data } = param as { columns: any[]; data: any[] }
   const sums: (string | number)[] = []
 
   columns.forEach((column: any, index: number) => {
@@ -398,7 +398,7 @@ function paymentRate(paid: number | undefined | null, total: number | undefined 
   return rate.toFixed(2) + '%'
 }
 
-function rateTagType(paid: number | undefined | null, total: number | undefined | null): string {
+function rateTagType(paid: number | undefined | null, total: number | undefined | null): 'success' | 'warning' | 'info' | 'danger' | undefined {
   if (!total || total === 0) return 'info'
   if (!paid || paid === 0) return 'danger'
   const rate = paid / total

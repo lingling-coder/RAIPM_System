@@ -3,6 +3,7 @@ package com.institute.achievement.module.system.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.institute.achievement.common.exception.AchievementException;
+import com.institute.achievement.common.service.INotificationService;
 import com.institute.achievement.framework.security.SecurityUtils;
 import com.institute.achievement.module.system.entity.Notification;
 import com.institute.achievement.module.system.mapper.NotificationMapper;
@@ -29,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class NotificationService {
+public class NotificationService implements INotificationService {
 
     private static final String UNREAD_KEY_PREFIX = "notify:unread:";
     private static final long REDIS_CACHE_SECONDS = 60;
@@ -219,6 +220,23 @@ public class NotificationService {
             log.warn("No users found for deptId={}, roleCode={}", deptId, roleCode);
         }
         return userIds;
+    }
+
+    /**
+     * Resolve a user's display name from their user ID.
+     * Overrides default to query the actual user name from DB.
+     */
+    @Override
+    public String resolveUserName(Long userId) {
+        try {
+            var user = sysUserMapper.selectById(userId);
+            if (user != null && user.getRealName() != null && !user.getRealName().isEmpty()) {
+                return user.getRealName();
+            }
+        } catch (Exception e) {
+            log.trace("Failed to resolve user name for userId={}: {}", userId, e.getMessage());
+        }
+        return "用户" + userId;
     }
 
     /**
